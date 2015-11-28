@@ -184,6 +184,8 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
     num_epochs = num_iters = 0
+    out_path = config['dump_path']
+    print "Dump path: %s" % out_path
     while num_epochs < config['n_epochs']:
         ind = np.random.choice(X.shape[0], config['size_batch'])
         # ind = [num_iters]  # for ordered data
@@ -204,17 +206,19 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
             h_prob = np.exp(info['objective_unweighted'] - info['weights_raw_log'])
             print np.unique(np.round(h_prob, 2), return_counts=True)
             print np.unique(np.round(info['weights'], 3), return_counts=True)
+            if num_epochs % 5 == 0:
+                _dbg = f_surr(X, Y_var, Y, num_samples=1, sample_only=True)
+                pickle.dump(_dbg, safe_path('_sample_e%d.pkl' % num_epochs, out_path, 'w'))
         if dbg_iter:
             dbg_iter(num_epochs, num_iters, info, workspace)
     # save params
-    if 'dump_path' in config:
-        out_path = config['dump_path']
-        if not os.path.exists(out_path):
-            os.makedirs(out_path)
-        print "Saving params to %s" % out_path
-        # pickle.dump(args, open(_safe_path('args.pkl'), 'w'))
-        pickle.dump(param_col.get_values(), safe_path('params.pkl', out_path, 'w'))
-        pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
+    out_path = config['dump_path']
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    print "Saving params to %s" % out_path
+    # pickle.dump(args, open(_safe_path('args.pkl'), 'w'))
+    pickle.dump(param_col.get_values(), safe_path('params.pkl', out_path, 'w'))
+    pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
 
