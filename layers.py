@@ -87,7 +87,7 @@ def combo_layer(X, size_in, size_out, splits,
     return out
 
 
-def lstm_block(h_prev, c_prev, x_curr, size_x, size_c):
+def lstm_block(h_prev, c_prev, x_curr, size_x, size_c, name=''):
     """
     Construct a LSTM cell block of specified number of cells
 
@@ -99,8 +99,8 @@ def lstm_block(h_prev, c_prev, x_curr, size_x, size_c):
     :return: c and h at current time step
     :rtype:
     """
-    input_sums = nn.Affine(size_x, 4 * size_c)(x_curr) + \
-                 nn.Affine(size_x, 4 * size_c)(h_prev)
+    input_sums = nn.Affine(size_x, 4 * size_c, name=name+'*x')(x_curr) + \
+                 nn.Affine(size_x, 4 * size_c, name=name+'*h')(h_prev)
     c_new = cgt.tanh(input_sums[:, 3*size_c:])
     sigmoid_chunk = cgt.sigmoid(input_sums[:, :3*size_c])
     in_gate = sigmoid_chunk[:, :size_c]
