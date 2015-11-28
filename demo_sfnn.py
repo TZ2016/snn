@@ -49,7 +49,7 @@ def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
     return net_in, net_out
 
 
-def make_funcs(net_in, net_out, config, dbg_out=None):
+def make_funcs(net_in, net_out, config, dbg_out={}):
     def f_sample(_inputs, num_samples=1, flatten=False):
         _mean, _var = f_step(_inputs)
         _samples = []
