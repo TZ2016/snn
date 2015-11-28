@@ -37,7 +37,7 @@ def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
         assert curr_num_units >= curr_num_sto >= 0
         prev_out = combo_layer(prev_out, prev_num_units, curr_num_units,
                                (curr_num_sto,),
-                               (cgt.bernoulli, None),
+                               o_funcs=(cgt.bernoulli, None),
                                name=str(curr_layer), dbg_out=dbg_out)
         dbg_out['L%d~out' % curr_layer] = prev_out
         prev_num_units = curr_num_units
@@ -88,8 +88,7 @@ def make_funcs(net_in, net_out, config, dbg_out=None):
         print "Applying penalty on parameter norm"
         assert config['param_penal_wt'] > 0
         params_flat = cgt.concatenate([p.flatten() for p in params])
-        loss_param = cgt.fill(cgt.sum(params_flat ** 2), [size_batch, 1])
-        loss_param *= config['param_penal_wt']
+        loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
         loss_raw += loss_param / size_batch
     # end of loss definition
     f_step = cgt.function(inputs, net_out)
