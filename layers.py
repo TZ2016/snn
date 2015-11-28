@@ -100,7 +100,7 @@ def lstm_block(h_prev, c_prev, x_curr, size_x, size_c, name=''):
     :rtype:
     """
     input_sums = nn.Affine(size_x, 4 * size_c, name=name+'*x')(x_curr) + \
-                 nn.Affine(size_x, 4 * size_c, name=name+'*h')(h_prev)
+                 nn.Affine(size_c, 4 * size_c, name=name+'*h')(h_prev)
     c_new = cgt.tanh(input_sums[:, 3*size_c:])
     sigmoid_chunk = cgt.sigmoid(input_sums[:, :3*size_c])
     in_gate = sigmoid_chunk[:, :size_c]

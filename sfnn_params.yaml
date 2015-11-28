@@ -1,10 +1,12 @@
 # SFNN
 
 # Network architecture
+T: 2  # for rnn
 num_inputs: 1  # size of net input
 num_outputs: 1  # size of net output
 num_units: [2, 4, 4]  # (hidden only) layer-wise number of neurons
 num_sto: [0, 2, 2]  # (hidden only) layer-wise number of stochastic neurons
+num_mems: [0, 0, 0]  # for rnn
 variance: .05 # 'in' (fed as input), 'out' (as network outputs), or float (isotropic value)
 no_bias: False  # no bias terms
 
