@@ -206,7 +206,7 @@ def create(args):
 if __name__ == "__main__":
     import yaml
     import time
-    from data import scale_data, data_synthetic_a
+    from data import *
 
     DUMP_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_tmp')
     PARAMS_PATH = os.path.join(DUMP_ROOT, '../sfnn_params.yaml')
@@ -215,7 +215,17 @@ if __name__ == "__main__":
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 
-    X, Y, Y_var = data_synthetic_a(1000)
-    X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
+    # X, Y, Y_var = data_synthetic_a(1000)
+    # X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
+    # problem = create(DEFAULT_ARGS)
+    # step(X, Y, problem, DEFAULT_ARGS, Y_var=Y_var)
+
+    X, Y = data_add(1000, 2)
+    DEFAULT_ARGS.update({
+        'num_units': [2],
+        'num_sto': [0],
+        'variance': 0.001,
+        'size_sample': 1,
+    })
     problem = create(DEFAULT_ARGS)
-    step(X, Y, problem, DEFAULT_ARGS, Y_var=Y_var)
+    step(X, Y, problem, DEFAULT_ARGS)
