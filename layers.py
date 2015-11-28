@@ -85,3 +85,27 @@ def combo_layer(X, size_in, size_out, splits,
     dbg_out.update(dict(zip([_n + '~in' for _n in names], ins)))
     dbg_out.update(dict(zip([_n + '~out' for _n in names], outs)))
     return out
+
+
+def lstm_block(h_prev, c_prev, x_curr, size_x, size_c):
+    """
+    Construct a LSTM cell block of specified number of cells
+
+    :param h_prev: self activations at previous time step
+    :param c_prev: self memory state at previous time step
+    :param x_curr: inputs from previous layer at current time step
+    :param size_x: size of inputs
+    :param size_c: size of both c and h
+    :return: c and h at current time step
+    :rtype:
+    """
+    input_sums = nn.Affine(size_x, 4 * size_c)(x_curr) + \
+                 nn.Affine(size_x, 4 * size_c)(h_prev)
+    c_new = cgt.tanh(input_sums[:, 3*size_c:])
+    sigmoid_chunk = cgt.sigmoid(input_sums[:, :3*size_c])
+    in_gate = sigmoid_chunk[:, :size_c]
+    forget_gate = sigmoid_chunk[:, size_c:2*size_c]
+    out_gate = sigmoid_chunk[:, 2*size_c:3*size_c]
+    c_curr = forget_gate * c_prev + in_gate * c_new
+    h_curr = out_gate * cgt.tanh(c_curr)
+    return c_curr, h_curr
