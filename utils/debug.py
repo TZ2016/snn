@@ -1,3 +1,6 @@
+__all__ = ['safe_path', 'example_debug']
+
+
 import os
 import warnings
 import matplotlib.pyplot as plt

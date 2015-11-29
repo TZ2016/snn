@@ -1,18 +1,18 @@
 # Learning Stochastic Feedforward Neural Networks
 
 import os
-import cgt
 import traceback
 import pprint
-from cgt.core import get_surrogate_func, Node
+import pickle
+import cgt
+from cgt.core import get_surrogate_func
 from cgt import nn
 import numpy as np
-import pickle
 from cgt.utility.param_collection import ParamCollection
 from cgt.distributions import gaussian_diagonal
 
-from opt import rmsprop_create, rmsprop_update, adam_create, adam_update
-from debug import example_debug, safe_path
+from utils.opt import rmsprop_create, rmsprop_update, adam_create, adam_update
+from utils.debug import example_debug, safe_path
 from layers import combo_layer
 
 
@@ -50,14 +50,14 @@ def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
 
 
 def make_funcs(net_in, net_out, config, dbg_out={}):
-    def f_sample(_inputs, num_samples=1, flatten=False):
-        _mean, _var = f_step(_inputs)
-        _samples = []
-        for _m, _v in zip(_mean, _var):
-            _s = np.random.multivariate_normal(_m, np.diag(np.sqrt(_v)), num_samples)
-            if flatten: _samples.extend(_s)
-            else: _samples.append(_s)
-        return np.array(_samples)
+    # def f_sample(_inputs, num_samples=1, flatten=False):
+    #     _mean, _var = f_step(_inputs)
+    #     _samples = []
+    #     for _m, _v in zip(_mean, _var):
+    #         _s = np.random.multivariate_normal(_m, np.diag(np.sqrt(_v)), num_samples)
+    #         if flatten: _samples.extend(_s)
+    #         else: _samples.append(_s)
+    #     return np.array(_samples)
     Y = cgt.matrix("Y")
     params = nn.get_parameters(net_out)
     size_batch, size_out = net_out.shape
@@ -206,12 +206,13 @@ def create(args):
 if __name__ == "__main__":
     import yaml
     import time
-    from data import *
+    from utils.data import *
 
-    DUMP_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_tmp')
-    PARAMS_PATH = os.path.join(DUMP_ROOT, '../sfnn_params.yaml')
+    CUR_DIR = os.path.dirname(os.path.realpath(__file__))
+    DUMP_ROOT = os.path.join(CUR_DIR, '_tmp')
+    PARAMS_PATH = os.path.join(CUR_DIR, 'default_params.yaml')
     DEFAULT_ARGS = yaml.load(open(PARAMS_PATH, 'r'))
-    DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT,'_%d/' % int(time.time()))
+    DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 

@@ -1,3 +1,11 @@
+__all__ = [
+    'scale_data',
+    'data_synthetic_a',
+    'data_sigm_multi',
+    'data_add',
+    'data_seq',
+]
+
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from scipy.special import expit as sigmoid

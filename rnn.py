@@ -1,15 +1,15 @@
 from __future__ import division
-import cgt
-import time
 import pprint
 import pickle
-from cgt import nn, utils
+import cgt
+from cgt import nn
 import numpy as np
 from cgt.distributions import gaussian_diagonal
 from cgt.utility.param_collection import ParamCollection
+
 from layers import lstm_block, combo_layer
-from opt import adam_create, adam_update, rmsprop_create, rmsprop_update
-from debug import example_debug, safe_path
+from utils.opt import *
+from utils.debug import safe_path
 
 
 def lstm_network_t(size_in, size_out, num_units, num_mems, dbg_out={}):
@@ -208,10 +208,11 @@ if __name__ == "__main__":
     import yaml
     import time
     import os
-    from data import *
+    from utils.data import *
 
-    DUMP_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_tmp')
-    PARAMS_PATH = os.path.join(DUMP_ROOT, '../sfnn_params.yaml')
+    CUR_DIR = os.path.dirname(os.path.realpath(__file__))
+    DUMP_ROOT = os.path.join(CUR_DIR, '_tmp')
+    PARAMS_PATH = os.path.join(CUR_DIR, 'default_params.yaml')
     DEFAULT_ARGS = yaml.load(open(PARAMS_PATH, 'r'))
     DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
     print "Default args:"
