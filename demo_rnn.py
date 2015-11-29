@@ -139,23 +139,11 @@ def step(Xs, Ys, workspace, config):
             num_epochs += 1
             num_iters = 0
             # import matplotlib.pyplot as plt
-            # assert config['num_inputs'] == config['num_outputs'] == 1
-            # plt.scatter(X, Y)
-            # plt.scatter(X, np.array(Y_hat).flatten(), color='r')
-            # plt.scatter(range(X.size), Y)
-            # plt.scatter(range(X.size), X, color='y')
-            # plt.scatter(range(X.size), np.array(Y_hat).flatten(), color='r')
+            # _d = 0  # which dim to plot
+            # plt.scatter(range(X[:, _d].size), Y[:, _d])
+            # plt.scatter(range(X[:, _d].size), X[:, _d], color='y')
+            # plt.scatter(range(X[:, _d].size), np.array(Y_hat).squeeze(axis=1)[:, _d], color='r')
             # plt.close()
-            # TODO remove the below
-            # h_prob = np.exp(info['objective_unweighted'] - info['weights_raw_log'])
-            # print np.unique(np.round(h_prob, 2), return_counts=True)
-            # print np.unique(np.round(info['weights'], 3), return_counts=True)
-            # if num_epochs % 5 == 0:
-            #     if config['variance'] == 'in':
-            #         _dbg = f_surr(X, Y_var, Y, num_samples=1, sample_only=True)
-            #     else:
-            #         _dbg = f_surr(X, Y, num_samples=1, sample_only=True)
-            #     pickle.dump(_dbg, safe_path('_sample_e%d.pkl' % num_epochs, out_path, 'w'))
     # save params
     out_path = config['dump_path']
     if not os.path.exists(out_path):
@@ -229,14 +217,16 @@ if __name__ == "__main__":
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 
-    Xs, Ys = data_seq(10, 50, dim=2)
+    Xs, Ys = data_add(10, 50, dim=2)
     # Xs, Ys = data_add(10, 50, 2)
     DEFAULT_ARGS.update({
-        'num_units': [3],
+        'num_inputs': 2,
+        'num_outputs': 2,
+        'num_units': [6],
         'num_sto': [0],  # not used
         'variance': 0.001,
         'size_sample': 1,
-        'num_mems': [2],
+        'num_mems': [4],
         'T': 5,
     })
     problem = create(DEFAULT_ARGS)

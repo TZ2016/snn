@@ -55,25 +55,25 @@ def data_sigm_multi(N, p):
     return X, Y
 
 
-def data_add(N, T, k=1):
+def data_add(N, T, k=2, dim=1):
     Xs, Ys = [], []
     for _ in range(N):
         # X = np.random.normal(0., 1., T)
-        X = np.random.binomial(1, 0.5, T)
+        X = np.random.binomial(1, 0.5, size=(T, dim))
         if k == 1:
             Y = X.copy()
         elif k == 2:
-            Y = np.r_[X[0], X[1:] + X[:-1]]
+            Y = np.concatenate((X[[0]], X[1:] + X[:-1]))
         else:
             Y = None
-        Y, X = Y.reshape((T, 1)), X.reshape((T, 1))
+        Y, X = Y.reshape((T, dim)), X.reshape((T, dim))
         Xs.append(X)
         Ys.append(Y)
     Xs, Ys = np.array(Xs, dtype=float), np.array(Ys, dtype=float)
     return Xs, Ys
 
 
-def data_seq(N, T, dim=1):
+def data_seq(N, T):
     lag = 5
     Xs, Ys = [], []
     for _ in range(N):
