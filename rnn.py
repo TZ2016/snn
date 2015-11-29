@@ -2,6 +2,7 @@ from __future__ import division
 import pprint
 import pickle
 import cgt
+import os
 from cgt import nn
 import numpy as np
 from cgt.distributions import gaussian_diagonal
@@ -142,6 +143,7 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
         _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)
         num_iters += 1
         if num_iters == N:
+            print "Epoch %d ends" % num_epochs
             num_epochs += 1
             num_iters = 0
             # import matplotlib.pyplot as plt
