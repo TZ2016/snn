@@ -69,17 +69,22 @@ def data_add(N, T, k=1):
         Y, X = Y.reshape((T, 1)), X.reshape((T, 1))
         Xs.append(X)
         Ys.append(Y)
+    Xs, Ys = np.array(Xs, dtype=float), np.array(Ys, dtype=float)
     return Xs, Ys
 
-def data_seq(N, T):
+
+def data_seq(N, T, dim=1):
+    lag = 5
     Xs, Ys = [], []
     for _ in range(N):
-        t = np.arange(0, 2 * np.pi, 2 * np.pi / T)
-        X = np.sin(t)
-        Y = np.r_[X[5:], np.zeros(5)]
+        start = float(np.random.uniform(0., 2. * np.pi))
+        t = np.linspace(start, start + 2 * np.pi, num=T+lag)
+        X = np.sin(t[:-lag])
+        Y = np.r_[np.sin(t[lag:])]
         # Y += np.random.normal(0., 0.1, T)
         # X += np.random.normal(0., 0.1, T)
         Y, X = Y.reshape((T, 1)), X.reshape((T, 1))
         Xs.append(X)
         Ys.append(Y)
+    Xs, Ys = np.array(Xs, dtype=float), np.array(Ys, dtype=float)
     return Xs, Ys
