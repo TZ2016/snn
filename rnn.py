@@ -65,7 +65,7 @@ def lstm_network(T, size_in, size_out, num_units, num_mems, dbg_out={}):
 
 def make_funcs(config, dbg_out=None):
     params, Xs, Ys, C_0, H_0, C_T, H_T = lstm_network(
-        config['T'], config['num_inputs'], config['num_outputs'],
+        config['rnn_steps'], config['num_inputs'], config['num_outputs'],
         config['num_units'], config['num_mems']
     )
 
@@ -87,7 +87,7 @@ def make_funcs(config, dbg_out=None):
         params_flat = cgt.concatenate([p.flatten() for p in params])
         loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
         loss_vec += loss_param  # / size_batch
-    loss = cgt.sum(loss_vec) / config['T'] / size_batch
+    loss = cgt.sum(loss_vec) / config['rnn_steps'] / size_batch
     f_loss = cgt.function(net_inputs + Ys_gt, loss)
 
     grad = cgt.grad(loss, params)
@@ -110,6 +110,7 @@ def step(Xs, Ys, workspace, config):
     optim_state = workspace['optim_state']
     num_epochs = num_iters = 0
     out_path = config['dump_path']
+    M = config['rnn_steps']
     print "Dump path: %s" % out_path
     assert config['size_batch'] == 1
     while num_epochs < config['n_epochs']:
@@ -120,17 +121,17 @@ def step(Xs, Ys, workspace, config):
             if _n_m > 0:
                 c_t.append(np.zeros((1, _n_m)))
                 h_t.append(np.zeros((1, _n_m)))
-        while t + config['T'] <= T:
-            xs, ys = X[t:t+config['T']], Y[t:t+config['T']]
+        while t + M <= T:
+            xs, ys = X[t:t+M], Y[t:t+M]
             xs = [np.expand_dims(x, axis=0) for x in xs]
             ys = [np.expand_dims(y, axis=0) for y in ys]
-            t += config['T']
+            t += M
             info = f_surr(*(xs + c_t + h_t + ys))
             loss, ys_hat, c_t, h_t, grad = info[0], \
-                                           info[1:1+config['T']], \
-                                           info[1+config['T']:1+config['T']+len(c_t)], \
-                                           info[1+config['T']+len(c_t):1+config['T']+2*len(c_t)], \
-                                           info[1+config['T']+2*len(c_t):]
+                                           info[1:1+M], \
+                                           info[1+M:1+M+len(c_t)], \
+                                           info[1+M+len(c_t):1+M+2*len(c_t)], \
+                                           info[1+M+2*len(c_t):]
             workspace['update'](param_col.flatten_values(grad), optim_state)
             param_col.set_value_flat(optim_state['theta'])
             Y_hat.extend(ys_hat)
@@ -228,7 +229,7 @@ if __name__ == "__main__":
         'variance': 0.001,
         'size_sample': 1,
         'num_mems': [4],
-        'T': 5,
+        'rnn_steps': 5,
     })
     problem = create(DEFAULT_ARGS)
     step(Xs, Ys, problem, DEFAULT_ARGS)
