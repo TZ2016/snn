@@ -120,8 +120,8 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
         t, c_t, h_t, _Yb_hat = 0, [], [], []
         for _n_m in config['num_mems']:
             if _n_m > 0:
-                c_t.append(np.zeros((1, _n_m)))
-                h_t.append(np.zeros((1, _n_m)))
+                c_t.append(np.zeros((B, _n_m)))
+                h_t.append(np.zeros((B, _n_m)))
         while t + M <= T:
             _xbs = list(_Xb[:, t:t+M].transpose(1, 0, 2))
             _ybs = list(_Yb[:, t:t+M].transpose(1, 0, 2))
