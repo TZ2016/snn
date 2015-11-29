@@ -163,6 +163,7 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
 
 
 def create(args):
+    assert all(_n == 0 for _n in args['num_sto']), "not supported"
     params, f_step, f_loss, f_grad, _, f_surr = make_funcs(args)
     param_col = ParamCollection(params)
     if 'snapshot' in args:
