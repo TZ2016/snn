@@ -101,13 +101,16 @@ def make_funcs(config, dbg_out=None):
 
 def step(Xs, Ys, workspace, config, Ys_var=None):
     assert Xs.shape[:2] == Ys.shape[:2]
+    (N, T, dX), dY = Xs.shape, Ys.shape[-1]
+    M = config['rnn_steps']
+    B = config['size_batch']
+    assert B <= N
+    assert (T / M) * M == T >= M
+    assert dX == config['num_inputs'] and dY == config['num_outputs']
     if config['variance'] == 'in':
         assert Ys_var is not None and Ys_var.shape == Ys.shape
     else:
         Ys_var = config['variance'] * np.ones_like(Ys)
-    N, T, dX = Xs.shape
-    M = config['rnn_steps']
-    B = config['size_batch']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
