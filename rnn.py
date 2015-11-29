@@ -69,14 +69,15 @@ def make_funcs(config, dbg_out=None):
         config['num_units'], config['num_mems']
     )
 
+    # basic
     size_batch = Xs[0].shape[0]
     net_inputs, net_outputs = Xs + C_0 + H_0, Ys + C_T + H_T
-    f_step = cgt.function(net_inputs, net_outputs)
-
-    assert isinstance(config['variance'], float)
-    Ys_var = [cgt.fill(config['variance'], y.shape) for y in Ys]
     Ys_gt = [cgt.matrix(fixed_shape=y.get_fixed_shape(), name='Y%d'%t)
              for t, y in enumerate(Ys)]
+    Ys_var = [cgt.matrix(fixed_shape=y.get_fixed_shape()) for y in Ys]
+    net_inputs += Ys_var  # mandatory variance as input
+
+    # calculate loss
     loss_vec = []
     for i in range(len(Ys)):
         #     if i == 0: continue
@@ -88,13 +89,13 @@ def make_funcs(config, dbg_out=None):
         loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
         loss_vec += loss_param  # / size_batch
     loss = cgt.sum(loss_vec) / config['rnn_steps'] / size_batch
-    f_loss = cgt.function(net_inputs + Ys_gt, loss)
-
     grad = cgt.grad(loss, params)
+
+    # functions
+    f_step = cgt.function(net_inputs, net_outputs)
+    f_loss = cgt.function(net_inputs + Ys_gt, loss)
     f_grad = cgt.function(net_inputs + Ys_gt, grad)
-
-    f_surr = cgt.function(net_inputs + Ys_gt, [loss] + net_outputs + grad )
-
+    f_surr = cgt.function(net_inputs + Ys_gt, [loss] + net_outputs + grad)
     return params, f_step, f_loss, f_grad, None, f_surr
 
 
@@ -102,6 +103,8 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
     assert Xs.shape[:2] == Ys.shape[:2]
     if config['variance'] == 'in':
         assert Ys_var is not None and Ys_var.shape == Ys.shape
+    else:
+        Ys_var = config['variance'] * np.ones_like(Ys)
     N, T, dX = Xs.shape
     M = config['rnn_steps']
     B = config['size_batch']
@@ -113,7 +116,7 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
     num_epochs = num_iters = 0
     while num_epochs < config['n_epochs']:
         _is = np.random.choice(N, size=B)  # this is a list
-        _Xb, _Yb = Xs[_is], Ys[_is]  # a batch of traj
+        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # a batch of traj
         t, c_t, h_t, _Yb_hat = 0, [], [], []
         for _n_m in config['num_mems']:
             if _n_m > 0:
@@ -122,8 +125,9 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
         while t + M <= T:
             _xbs = list(_Xb[:, t:t+M].transpose(1, 0, 2))
             _ybs = list(_Yb[:, t:t+M].transpose(1, 0, 2))
+            _ybs_var = list(_Yb_var[:, t:t+M].transpose(1, 0, 2))
             t += M
-            info = f_surr(*(_xbs + c_t + h_t + _ybs))
+            info = f_surr(*(_xbs + c_t + h_t + _ybs_var + _ybs))
             loss, ys_hat, c_t, h_t, grad = info[0], \
                                            info[1:1+M], \
                                            info[1+M:1+M+len(c_t)], \
