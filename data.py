@@ -57,11 +57,19 @@ def data_sigm_multi(N, p):
 
 def data_add(N, k=1):
     X = np.random.normal(0., 1., N)
+    # X = np.random.binomial(1, 0.5, N)
     if k == 1:
         Y = X.copy()
     elif k == 2:
         Y = np.r_[X[0], X[1:] + X[:-1]]
     else:
         Y = None
+    Y, X = Y.reshape((N, 1)), X.reshape((N, 1))
+    return X, Y
+
+def data_seq(N):
+    T = np.arange(0, 2 * np.pi, 2 * np.pi / N)
+    X = np.sin(T)
+    Y = np.r_[X[1:], X[-1]]
     Y, X = Y.reshape((N, 1)), X.reshape((N, 1))
     return X, Y

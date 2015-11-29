@@ -79,8 +79,9 @@ def make_funcs(config, dbg_out=None):
     Ys_gt = [cgt.matrix(fixed_shape=y.get_fixed_shape(), name='Y%d'%t)
              for t, y in enumerate(Ys)]
     loss_vec = []
-    for y_gt, y, y_var in zip(Ys_gt, Ys, Ys_var):
-        _l = gaussian_diagonal.logprob(y_gt, y, y_var)
+    for i in range(len(Ys)):
+        #     if i == 0: continue
+        _l = gaussian_diagonal.logprob(Ys_gt[i], Ys[i], Ys_var[i])
         loss_vec.append(_l)
     loss_vec = cgt.add_multi(loss_vec)
     if config['param_penal_wt'] > 0.:
@@ -133,9 +134,9 @@ def step(Xs, Ys, workspace, config):
             param_col.set_value_flat(optim_state['theta'])
         num_iters += 1
         if num_iters == N:
-            import matplotlib.pyplot as plt
-            plt.scatter(X, Y)
-            plt.scatter(X, np.array(Y_hat).flatten(), color='r')
+            # import matplotlib.pyplot as plt
+            # plt.scatter(X, Y)
+            # plt.scatter(X, np.array(Y_hat).flatten(), color='r')
             num_epochs += 1
             num_iters = 0
             # TODO remove the below
@@ -301,14 +302,14 @@ if __name__ == "__main__":
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 
-    X, Y = data_add(1000, 2)
+    X, Y = data_seq(300)
     DEFAULT_ARGS.update({
-        'num_units': [2, 2],
+        'num_units': [3],
         'num_sto': [0],  # not used
         'variance': 0.001,
         'size_sample': 1,
-        'num_mems': [2, 2],
-        'T': 2
+        'num_mems': [3],
+        'T': 3,
     })
     problem = create(DEFAULT_ARGS)
     step([X], [Y], problem, DEFAULT_ARGS)

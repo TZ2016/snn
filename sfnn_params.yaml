@@ -13,7 +13,7 @@ no_bias: False  # no bias terms
 # training parameters
 n_epochs: 10
 opt_method: adam  # adam, rmsprop
-step_size: .05
+step_size: .01
 
 # training logistics
 size_sample: 30  # #times to sample the network per data pair

@@ -109,3 +109,10 @@ def lstm_block(h_prev, c_prev, x_curr, size_x, size_c, name=''):
     c_curr = forget_gate * c_prev + in_gate * c_new
     h_curr = out_gate * cgt.tanh(c_curr)
     return c_curr, h_curr
+
+# def vanilla_block(h_prev, c_prev, x_curr, size_x, size_c, name=''):
+#     c_curr = nn.Affine(size_x, size_c, name=name+'*x')(x_curr) + \
+#                  nn.Affine(size_c, size_c, name=name+'*h')(c_prev)
+#     c_curr = cgt.tanh(input_sums)
+#     h_curr = nn.Affine(size_c, size_c, name=name+'*y')(c_curr)
+#     return c_curr, h_curr
