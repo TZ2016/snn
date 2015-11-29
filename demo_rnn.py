@@ -99,9 +99,8 @@ def make_funcs(config, dbg_out=None):
 
 
 def step(Xs, Ys, workspace, config):
-    # Xs (Ys) is a list of time sequences
-    N, (T, xDim) = len(Xs), Xs[0].shape
-    assert N == len(Ys) and Ys[0].shape[0] == T
+    assert Xs.shape[:2] == Ys.shape[:2]
+    N, T, dX = Xs.shape
 
     # if config['debug'] and (dbg_iter is None or dbg_done is None):
     #     dbg_iter, dbg_done = example_debug(config, X, Y, Y_var=Y_var)
@@ -112,35 +111,40 @@ def step(Xs, Ys, workspace, config):
     num_epochs = num_iters = 0
     out_path = config['dump_path']
     print "Dump path: %s" % out_path
-    assert config['size_batch'] == 1 == config['num_inputs'] == config['num_outputs']
+    assert config['size_batch'] == 1
     while num_epochs < config['n_epochs']:
-        X, Y = Xs[num_iters], Ys[num_iters]
-        t, C_t, H_t, Y_hat = 0, [], [], []
+        ind = np.random.choice(N)  # size_batch = 1
+        X, Y = Xs[ind], Ys[ind]
+        t, c_t, h_t, Y_hat = 0, [], [], []
         for _n_m in config['num_mems']:
             if _n_m > 0:
-                C_t.append(np.zeros((1, _n_m)))
-                H_t.append(np.zeros((1, _n_m)))
+                c_t.append(np.zeros((1, _n_m)))
+                h_t.append(np.zeros((1, _n_m)))
         while t + config['T'] <= T:
             xs, ys = X[t:t+config['T']], Y[t:t+config['T']]
-            xs = [x.reshape((1, 1)) for x in xs]
-            ys = [y.reshape((1, 1)) for y in ys]
+            xs = [np.expand_dims(x, axis=0) for x in xs]
+            ys = [np.expand_dims(y, axis=0) for y in ys]
             t += config['T']
-            info = f_surr(*(xs + C_t + H_t + ys))
-            loss, ys_hat, C_t, H_t, grad = info[0], info[1:1+config['T']], info[1+config['T']:1+config['T']+len(C_t)], info[1+config['T']+len(C_t):1+config['T']+2*len(C_t)], info[1+config['T']+2*len(C_t):]
-            print loss
-            Y_hat.extend(ys_hat)
+            info = f_surr(*(xs + c_t + h_t + ys))
+            loss, ys_hat, c_t, h_t, grad = info[0], \
+                                           info[1:1+config['T']], \
+                                           info[1+config['T']:1+config['T']+len(c_t)], \
+                                           info[1+config['T']+len(c_t):1+config['T']+2*len(c_t)], \
+                                           info[1+config['T']+2*len(c_t):]
             workspace['update'](param_col.flatten_values(grad), optim_state)
             param_col.set_value_flat(optim_state['theta'])
+            Y_hat.extend(ys_hat)
         num_iters += 1
         if num_iters == N:
             num_epochs += 1
             num_iters = 0
             # import matplotlib.pyplot as plt
+            # assert config['num_inputs'] == config['num_outputs'] == 1
             # plt.scatter(X, Y)
             # plt.scatter(X, np.array(Y_hat).flatten(), color='r')
-            # plt.scatter(range(len(X)), Y)
-            # plt.scatter(range(len(X)), X, color='y')
-            # plt.scatter(range(len(X)), np.array(Y_hat).flatten(), color='r')
+            # plt.scatter(range(X.size), Y)
+            # plt.scatter(range(X.size), X, color='y')
+            # plt.scatter(range(X.size), np.array(Y_hat).flatten(), color='r')
             # plt.close()
             # TODO remove the below
             # h_prob = np.exp(info['objective_unweighted'] - info['weights_raw_log'])
@@ -225,7 +229,7 @@ if __name__ == "__main__":
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 
-    Xs, Ys = data_seq(10, 50)
+    Xs, Ys = data_seq(10, 50, dim=2)
     # Xs, Ys = data_add(10, 50, 2)
     DEFAULT_ARGS.update({
         'num_units': [3],
