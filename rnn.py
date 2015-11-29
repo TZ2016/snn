@@ -98,35 +98,32 @@ def make_funcs(config, dbg_out=None):
     return params, f_step, f_loss, f_grad, None, f_surr
 
 
-def step(Xs, Ys, workspace, config):
+def step(Xs, Ys, workspace, config, Ys_var=None):
     assert Xs.shape[:2] == Ys.shape[:2]
+    if config['variance'] == 'in':
+        assert Ys_var is not None and Ys_var.shape == Ys.shape
     N, T, dX = Xs.shape
-
-    # if config['debug'] and (dbg_iter is None or dbg_done is None):
-    #     dbg_iter, dbg_done = example_debug(config, X, Y, Y_var=Y_var)
-    # if config['variance'] == 'in': assert Y_var is not None
+    M = config['rnn_steps']
+    B = config['size_batch']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
-    num_epochs = num_iters = 0
     out_path = config['dump_path']
-    M = config['rnn_steps']
     print "Dump path: %s" % out_path
-    assert config['size_batch'] == 1
+    num_epochs = num_iters = 0
     while num_epochs < config['n_epochs']:
-        ind = np.random.choice(N)  # size_batch = 1
-        X, Y = Xs[ind], Ys[ind]
-        t, c_t, h_t, Y_hat = 0, [], [], []
+        _is = np.random.choice(N, size=B)  # this is a list
+        _Xb, _Yb = Xs[_is], Ys[_is]  # a batch of traj
+        t, c_t, h_t, _Yb_hat = 0, [], [], []
         for _n_m in config['num_mems']:
             if _n_m > 0:
                 c_t.append(np.zeros((1, _n_m)))
                 h_t.append(np.zeros((1, _n_m)))
         while t + M <= T:
-            xs, ys = X[t:t+M], Y[t:t+M]
-            xs = [np.expand_dims(x, axis=0) for x in xs]
-            ys = [np.expand_dims(y, axis=0) for y in ys]
+            _xbs = list(_Xb[:, t:t+M].transpose(1, 0, 2))
+            _ybs = list(_Yb[:, t:t+M].transpose(1, 0, 2))
             t += M
-            info = f_surr(*(xs + c_t + h_t + ys))
+            info = f_surr(*(_xbs + c_t + h_t + _ybs))
             loss, ys_hat, c_t, h_t, grad = info[0], \
                                            info[1:1+M], \
                                            info[1+M:1+M+len(c_t)], \
@@ -134,19 +131,19 @@ def step(Xs, Ys, workspace, config):
                                            info[1+M+2*len(c_t):]
             workspace['update'](param_col.flatten_values(grad), optim_state)
             param_col.set_value_flat(optim_state['theta'])
-            Y_hat.extend(ys_hat)
+            _Yb_hat.extend(ys_hat)
+        _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)
         num_iters += 1
         if num_iters == N:
             num_epochs += 1
             num_iters = 0
             # import matplotlib.pyplot as plt
-            # _d = 0  # which dim to plot
-            # plt.scatter(range(X[:, _d].size), Y[:, _d])
-            # plt.scatter(range(X[:, _d].size), X[:, _d], color='y')
-            # plt.scatter(range(X[:, _d].size), np.array(Y_hat).squeeze(axis=1)[:, _d], color='r')
+            # _b, _d = 0, 0  # which batch/dim to plot
+            # plt.scatter(range(_Xb[_b,:,_d].size), _Yb[_b,:,_d])
+            # plt.scatter(range(_Xb[_b,:,_d].size), _Xb[_b,:,_d], color='y')
+            # plt.scatter(range(_Xb[_b,:,_d].size), np.array(_Yb_hat)[_b,:,_d], color='r')
             # plt.close()
     # save params
-    out_path = config['dump_path']
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     print "Saving params to %s" % out_path
