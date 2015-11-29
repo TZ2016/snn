@@ -1,7 +1,7 @@
 # SFNN
 
 # Network architecture
-T: 2  # for rnn
+T: 1  # for rnn
 num_inputs: 1  # size of net input
 num_outputs: 1  # size of net output
 num_units: [2, 4, 4]  # (hidden only) layer-wise number of neurons

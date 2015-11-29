@@ -12,7 +12,6 @@ from opt import adam_create, adam_update, rmsprop_create, rmsprop_update
 from debug import example_debug, safe_path
 
 
-# TODO untested
 def lstm_network_t(size_in, size_out, num_units, num_mems, dbg_out={}):
     def s_func_lstm(_in, _s_in, _s_out, name=''):
         c_prev = cgt.matrix(fixed_shape=(None, _s_out))
@@ -134,15 +133,15 @@ def step(Xs, Ys, workspace, config):
             param_col.set_value_flat(optim_state['theta'])
         num_iters += 1
         if num_iters == N:
-            import matplotlib.pyplot as plt
-            # plt.scatter(X, Y)
-            # plt.scatter(X, np.array(Y_hat).flatten(), color='r')
-            plt.scatter(range(len(X)), Y)
-            plt.scatter(range(len(X)), X, color='y')
-            plt.scatter(range(len(X)), np.array(Y_hat).flatten(), color='r')
-            plt.close()
             num_epochs += 1
             num_iters = 0
+            # import matplotlib.pyplot as plt
+            # plt.scatter(X, Y)
+            # plt.scatter(X, np.array(Y_hat).flatten(), color='r')
+            # plt.scatter(range(len(X)), Y)
+            # plt.scatter(range(len(X)), X, color='y')
+            # plt.scatter(range(len(X)), np.array(Y_hat).flatten(), color='r')
+            # plt.close()
             # TODO remove the below
             # h_prob = np.exp(info['objective_unweighted'] - info['weights_raw_log'])
             # print np.unique(np.round(h_prob, 2), return_counts=True)
@@ -213,86 +212,6 @@ def create(args):
     return workspace
 
 
-
-
-
-
-
-
-class CGTSolver(object):
-    def __init__(self, cgt_net,
-                 learning_rate=1.0, rho=0.9):
-        self.cgt_net = cgt_net
-        theta = self.cgt_net.params_col.get_value_flat()
-        self.optim_state = rmsprop_create(theta, learning_rate, rho)
-        self.num_epochs = 0
-
-    def step(self, num_step, train_input, train_output):
-        input_patches = self.process_data(train_input)
-        output_patches = self.process_data(train_output)
-        for _ in range(num_step):
-            self.step_once(input_patches, output_patches)
-
-    def step_once(self, input_patches, output_patches):
-        self.num_epochs += 1
-        print "starting epoch", self.num_epochs
-        tstart = time.time()
-        losses = []
-        cur_hiddens = self.cgt_net.init_hidden_layers()
-        for (x, y) in zip(input_patches, output_patches):
-            assert x.shape[0] == y.shape[0] == self.cgt_net.n_unroll
-            assert x.shape[1] == self.cgt_net.size_input
-            assert y.shape[1] == self.cgt_net.size_output
-            out = self.cgt_net.f_loss_and_grad(x, y, *cur_hiddens)
-            loss, grad, cur_hiddens = out[0], out[1], out[2:]
-            rmsprop_update(grad, self.optim_state)
-            self.cgt_net.params_col.set_value_flat(self.optim_state.theta)
-            losses.append(loss)
-        print "%.3f s/batch. avg loss = %.3f" % \
-              ((time.time() - tstart) / len(losses), np.mean(losses))
-        self.optim_state.step_size *= .98
-
-    def process_data(self, data):
-        """
-        Return a list of numpy arrays of shape (n_unroll, size_batch, size_*)
-        If data is used for input, size_* = size_input
-        """
-        assert data.ndim == 2
-        N = data.shape[0]
-        size_patch = self.cgt_net.n_unroll * self.cgt_net.size_batch
-        num_patches = N // size_patch
-        patches = np.split(data[:num_patches * size_patch], num_patches, axis=0)
-        patches = [
-            np.reshape(patch, (self.cgt_net.n_unroll, self.cgt_net.size_batch, -1))
-            for patch in patches
-        ]
-        return patches
-
-# def cgt_gru(size_input, size_mem, n_layers, size_output, size_batch):
-#     inputs = [cgt.matrix() for i_layer in xrange(n_layers+1)]
-#     outputs = []
-#     for i_layer in xrange(n_layers):
-#         prev_h = inputs[i_layer+1] # note that inputs[0] is the external input, so we add 1
-#         x = inputs[0] if i_layer==0 else outputs[i_layer-1]
-#         size_x = size_input if i_layer==0 else size_mem
-#         update_gate = cgt.sigmoid(
-#             nn.Affine(size_x, size_mem,name="i2u")(x)
-#             + nn.Affine(size_mem, size_mem, name="h2u")(prev_h))
-#         reset_gate = cgt.sigmoid(
-#             nn.Affine(size_x, size_mem,name="i2r")(x)
-#             + nn.Affine(size_mem, size_mem, name="h2r")(prev_h))
-#         gated_hidden = reset_gate * prev_h
-#         p2 = nn.Affine(size_mem, size_mem)(gated_hidden)
-#         p1 = nn.Affine(size_x, size_mem)(x)
-#         hidden_target = cgt.tanh(p1+p2)
-#         next_h = (1.0-update_gate)*prev_h + update_gate*hidden_target
-#         outputs.append(next_h)
-#     category_activations = nn.Affine(size_mem, size_output,name="pred")(outputs[-1])
-#     logprobs = nn.logsoftmax(category_activations)
-#     outputs.append(logprobs)
-#
-#     return nn.Module(inputs, outputs)
-
 if __name__ == "__main__":
     import yaml
     import time
@@ -313,7 +232,7 @@ if __name__ == "__main__":
         'num_sto': [0],  # not used
         'variance': 0.001,
         'size_sample': 1,
-        'num_mems': [3],
+        'num_mems': [2],
         'T': 5,
     })
     problem = create(DEFAULT_ARGS)
