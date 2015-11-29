@@ -122,7 +122,7 @@ def step(Xs, Ys, workspace, config):
                 C_t.append(np.zeros((1, _n_m)))
                 H_t.append(np.zeros((1, _n_m)))
         while t + config['T'] <= T:
-            xs, ys = X[t:t+config['T']], X[t:t+config['T']]
+            xs, ys = X[t:t+config['T']], Y[t:t+config['T']]
             xs = [x.reshape((1, 1)) for x in xs]
             ys = [y.reshape((1, 1)) for y in ys]
             t += config['T']
@@ -134,9 +134,13 @@ def step(Xs, Ys, workspace, config):
             param_col.set_value_flat(optim_state['theta'])
         num_iters += 1
         if num_iters == N:
-            # import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt
             # plt.scatter(X, Y)
             # plt.scatter(X, np.array(Y_hat).flatten(), color='r')
+            plt.scatter(range(len(X)), Y)
+            plt.scatter(range(len(X)), X, color='y')
+            plt.scatter(range(len(X)), np.array(Y_hat).flatten(), color='r')
+            plt.close()
             num_epochs += 1
             num_iters = 0
             # TODO remove the below
@@ -298,18 +302,19 @@ if __name__ == "__main__":
     DUMP_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_tmp')
     PARAMS_PATH = os.path.join(DUMP_ROOT, '../sfnn_params.yaml')
     DEFAULT_ARGS = yaml.load(open(PARAMS_PATH, 'r'))
-    DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT,'_%d/' % int(time.time()))
+    DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 
-    Xs, Ys = data_seq(10, 300)
+    Xs, Ys = data_seq(10, 50)
+    # Xs, Ys = data_add(10, 50, 2)
     DEFAULT_ARGS.update({
         'num_units': [3],
         'num_sto': [0],  # not used
         'variance': 0.001,
         'size_sample': 1,
         'num_mems': [3],
-        'T': 3,
+        'T': 5,
     })
     problem = create(DEFAULT_ARGS)
     step(Xs, Ys, problem, DEFAULT_ARGS)
