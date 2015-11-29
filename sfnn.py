@@ -190,6 +190,7 @@ def create(args):
             init_theta, (param_col.get_total_size(), 1)).flatten()
     param_col.set_value_flat(optim_state['theta'])
     workspace = {
+        'type': ('sfnn', 'fnn', 'snn'),
         'optim_state': optim_state,
         'param_col': param_col,
         'f_surr': f_surr,

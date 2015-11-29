@@ -46,6 +46,7 @@ def lstm_network_t(size_in, size_out, num_units, num_mems, dbg_out={}):
 
 
 def lstm_network(T, size_in, size_out, num_units, num_mems, dbg_out={}):
+    assert T > 0
     x, y, c_in, h_in, c_out, h_out = lstm_network_t(
         size_in, size_out, num_units, num_mems, dbg_out
     )
@@ -55,28 +56,28 @@ def lstm_network(T, size_in, size_out, num_units, num_mems, dbg_out={}):
     C_0 = [cgt.matrix(fixed_shape=_c.get_fixed_shape()) for _c in c_in]
     H_0 = [cgt.matrix(fixed_shape=_h.get_fixed_shape()) for _h in h_in]
     loss, C_t, H_t, Ys = [], C_0, H_0, []
-    for x in Xs:
+    for t, x in enumerate(Xs):
         _out = f_lstm_t([x] + C_t + H_t)
         y, C_t, H_t = _out[0], _out[1:len(C_t)+1], _out[1+len(C_t):]
         Ys.append(y)
+        if t == 0:  C_1, H_1 = C_t, H_t
     C_T, H_T = C_t, H_t
     params = f_lstm_t.get_parameters()
-    return params, Xs, Ys, C_0, H_0, C_T, H_T
+    return params, Xs, Ys, C_0, H_0, C_T, H_T, C_1, H_1
 
 
 def make_funcs(config, dbg_out=None):
-    params, Xs, Ys, C_0, H_0, C_T, H_T = lstm_network(
+    params, Xs, Ys, C_0, H_0, C_T, H_T, C_1, H_1 = lstm_network(
         config['rnn_steps'], config['num_inputs'], config['num_outputs'],
         config['num_units'], config['num_mems']
     )
 
     # basic
     size_batch = Xs[0].shape[0]
-    net_inputs, net_outputs = Xs + C_0 + H_0, Ys + C_T + H_T
     Ys_gt = [cgt.matrix(fixed_shape=y.get_fixed_shape(), name='Y%d'%t)
              for t, y in enumerate(Ys)]
     Ys_var = [cgt.matrix(fixed_shape=y.get_fixed_shape()) for y in Ys]
-    net_inputs += Ys_var  # mandatory variance as input
+    net_inputs, net_outputs = Xs + C_0 + H_0 + Ys_var, Ys + C_T + H_T
 
     # calculate loss
     loss_vec = []
@@ -100,7 +101,7 @@ def make_funcs(config, dbg_out=None):
                 c_0.append(np.zeros((size_batch, _n_m)))
                 h_0.append(np.zeros((size_batch, _n_m)))
         return c_0, h_0
-    f_step = cgt.function(net_inputs, net_outputs)
+    f_step = cgt.function([Xs[0]] + C_0 + H_0, [Ys[0]] + C_1 + H_1)
     f_loss = cgt.function(net_inputs + Ys_gt, loss)
     f_grad = cgt.function(net_inputs + Ys_gt, grad)
     f_surr = cgt.function(net_inputs + Ys_gt, [loss] + net_outputs + grad)
@@ -204,6 +205,7 @@ def create(args):
             init_theta, (param_col.get_total_size(), 1)).flatten()
     param_col.set_value_flat(optim_state['theta'])
     workspace = {
+        'type': ('rnn',),
         'optim_state': optim_state,
         'param_col': param_col,
         'f_surr': f_surr,
