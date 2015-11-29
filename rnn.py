@@ -93,11 +93,18 @@ def make_funcs(config, dbg_out=None):
     grad = cgt.grad(loss, params)
 
     # functions
+    def f_init(size_batch):
+        c_0, h_0 = [], []
+        for _n_m in config['num_mems']:
+            if _n_m > 0:
+                c_0.append(np.zeros((size_batch, _n_m)))
+                h_0.append(np.zeros((size_batch, _n_m)))
+        return c_0, h_0
     f_step = cgt.function(net_inputs, net_outputs)
     f_loss = cgt.function(net_inputs + Ys_gt, loss)
     f_grad = cgt.function(net_inputs + Ys_gt, grad)
     f_surr = cgt.function(net_inputs + Ys_gt, [loss] + net_outputs + grad)
-    return params, f_step, f_loss, f_grad, None, f_surr
+    return params, f_step, f_loss, f_grad, f_init, f_surr
 
 
 def step(Xs, Ys, workspace, config, Ys_var=None):
@@ -112,6 +119,7 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
         assert Ys_var is not None and Ys_var.shape == Ys.shape
     else:
         Ys_var = config['variance'] * np.ones_like(Ys)
+    f_init = workspace['f_init']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
@@ -121,11 +129,8 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
     while num_epochs < config['n_epochs']:
         _is = np.random.choice(N, size=B)  # this is a list
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # a batch of traj
-        t, c_t, h_t, _Yb_hat = 0, [], [], []
-        for _n_m in config['num_mems']:
-            if _n_m > 0:
-                c_t.append(np.zeros((B, _n_m)))
-                h_t.append(np.zeros((B, _n_m)))
+        t, _Yb_hat = 0, []
+        c_t, h_t = f_init(B)
         while t + M <= T:
             _xbs = list(_Xb[:, t:t+M].transpose(1, 0, 2))
             _ybs = list(_Yb[:, t:t+M].transpose(1, 0, 2))
@@ -164,7 +169,7 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
 
 def create(args):
     assert all(_n == 0 for _n in args['num_sto']), "not supported"
-    params, f_step, f_loss, f_grad, _, f_surr = make_funcs(args)
+    params, f_step, f_loss, f_grad, f_init, f_surr = make_funcs(args)
     param_col = ParamCollection(params)
     if 'snapshot' in args:
         print "Loading params from previous snapshot: %s" % args['snapshot']
@@ -204,6 +209,7 @@ def create(args):
         'f_surr': f_surr,
         'f_step': f_step,
         'f_loss': f_loss,
+        'f_init': f_init,
         'f_grad': f_grad,
         'update': f_update,
     }
