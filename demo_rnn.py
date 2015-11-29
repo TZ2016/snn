@@ -302,7 +302,7 @@ if __name__ == "__main__":
     print "Default args:"
     pprint.pprint(DEFAULT_ARGS)
 
-    X, Y = data_seq(300)
+    Xs, Ys = data_seq(10, 300)
     DEFAULT_ARGS.update({
         'num_units': [3],
         'num_sto': [0],  # not used
@@ -312,4 +312,4 @@ if __name__ == "__main__":
         'T': 3,
     })
     problem = create(DEFAULT_ARGS)
-    step([X], [Y], problem, DEFAULT_ARGS)
+    step(Xs, Ys, problem, DEFAULT_ARGS)
