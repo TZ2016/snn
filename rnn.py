@@ -89,7 +89,7 @@ def make_funcs(config, dbg_out=None):
     if config['param_penal_wt'] > 0.:
         params_flat = cgt.concatenate([p.flatten() for p in params])
         loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
-        loss_vec += loss_param  # / size_batch
+        loss_vec -= loss_param  # / size_batch
     loss = cgt.sum(loss_vec) / config['rnn_steps'] / size_batch
     grad = cgt.grad(loss, params)
 

@@ -89,7 +89,7 @@ def make_funcs(net_in, net_out, config, dbg_out={}):
         assert config['param_penal_wt'] > 0
         params_flat = cgt.concatenate([p.flatten() for p in params])
         loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
-        loss_raw += loss_param / size_batch
+        loss_raw -= loss_param / size_batch
     # end of loss definition
     f_step = cgt.function(inputs, net_out)
     f_surr = get_surrogate_func(inputs + [Y], net_out,
