@@ -37,6 +37,10 @@ def example_debug(args, X, Y, Y_var=None):
                     plt.setp(a.get_xticklabels()[1:-1], visible=False)
                     plt.setp(a.get_xticklabels()[0], visible=True)
                     plt.setp(a.get_xticklabels()[-1], visible=True)
+                elif x == 'auto':
+                    if len(a.get_xticklabels()) > 20:
+                        plt.setp(a.get_xticklabels(), visible=False)
+                        plt.setp(a.get_xticklabels()[::5], visible=True)
                 else:
                     raise KeyError
             if y:
@@ -55,7 +59,6 @@ def example_debug(args, X, Y, Y_var=None):
     # cache
     ep_net_distr = []
     it_loss_surr = []
-    it_theta_comp = []
     it_grad_norm, it_grad_norm_comp = [], []
     it_theta_norm, it_theta_norm_comp = [], []
     def dbg_iter(num_epochs, num_iters, info, workspace):
@@ -69,7 +72,6 @@ def example_debug(args, X, Y, Y_var=None):
         it_theta_norm.append(np.linalg.norm(optim_state['theta']))
         it_theta_norm_comp.append([np.linalg.norm(t) / np.size(t)
                                    for t in param_col.get_values()])
-        it_theta_comp.append(np.copy(optim_state['theta']))
         if num_iters == 0:  # new epoch
             print "Epoch %d" % num_epochs
             print "Mean gradient norm = %f" % np.mean(it_grad_norm[-N:])
@@ -91,17 +93,17 @@ def example_debug(args, X, Y, Y_var=None):
             'xticks': np.arange(args['n_epochs']) * N,
             'xticklabels': np.arange(args['n_epochs']).astype(str)
         }
-        if args['dbg_plot_charts']:
-            # plot overview
-            f, axs = plt.subplots(3, 1, sharex=True, subplot_kw=kw_ticks)
-            f.suptitle('overview')
-            axs[0].plot(conv_smoother(it_loss_surr))
-            h_ax(axs[0], title='loss', x='hide')
-            axs[1].plot(conv_smoother(it_grad_norm)); axs[1].set_title('grad')
-            h_ax(axs[1], title='grad', x='hide')
-            axs[2].plot(conv_smoother(it_theta_norm)); axs[2].set_title('theta')
-            h_ax(axs[2], title='theta')
-            f.savefig(_safe_path('overview.png')); plt.close(f)
+        # plot overview
+        f, axs = plt.subplots(3, 1, sharex=True, subplot_kw=kw_ticks)
+        f.suptitle('Training Overview')
+        axs[0].plot(conv_smoother(it_loss_surr))
+        h_ax(axs[0], title='Objective', x='hide')
+        axs[1].plot(conv_smoother(it_grad_norm)); axs[1].set_title('grad')
+        h_ax(axs[1], title='Gradient Norm', x='hide')
+        axs[2].plot(conv_smoother(it_theta_norm)); axs[2].set_title('theta')
+        h_ax(axs[2], title='Theta Norm', x='auto')
+        f.savefig(_safe_path('overview.png')); plt.close(f)
+        if False and args['dbg_plot_charts']:
             # plot grad norm component-wise
             _grad_norm_cmp = np.array(it_grad_norm_comp).T
             f, axs = plt.subplots(_grad_norm_cmp.shape[0], 1, sharex=True, subplot_kw=kw_ticks)
