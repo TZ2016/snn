@@ -48,52 +48,58 @@ def make_funcs(config, dbg_out={}):
     #         else: _samples.append(_s)
     #     return np.array(_samples)
     Y = cgt.matrix("Y")
+    Y_var = cgt.matrix('V', fixed_shape=(None, config['num_inputs']))
     params = nn.get_parameters(net_out)
     size_batch, size_out = net_out.shape
-    inputs = [net_in]
+    inputs, outputs = [net_in, Y_var], [net_out]
     if config['no_bias']:
         print "Excluding bias"
         params = [p for p in params if not p.name.endswith(".b")]
-    if config['variance'] == 'in':
-        print "Input includes diagonal variance"
-        # TODO_TZ diagonal for now
-        in_var = cgt.matrix('V', fixed_shape=(None, config['num_inputs']))
-        inputs.append(in_var)
-        out_mean, out_var = net_out, in_var
-    elif config['variance'] == 'out':  # net outputs variance
-        print "Network outputs diagonal variance"
-        cutoff = size_out // 2
-        out_mean, out_var = net_out[:, :cutoff], net_out[:, cutoff:]
-        # out_var = out_var ** 2 + 1.e-6
-        out_var = cgt.exp(out_var) + 1.e-6
-    else:
-        print "Constant variance"
-        # TODO make variance always the input
-        assert isinstance(config['variance'], float)
-        out_mean = net_out
-        out_var = cgt.fill(config['variance'], [size_batch, size_out])
-    net_out = [out_mean, out_var]
-    loss_raw = gaussian_diagonal.logprob(Y, out_mean, out_var)
-    if config['param_penal_wt'] != 0.:
+    # if config['variance'] == 'in':
+    #     print "Input includes diagonal variance"
+    #     # TODO_TZ diagonal for now
+    #     inputs.append(in_var)
+    #     out_mean, out_var = net_out, in_var
+    # elif config['variance'] == 'out':  # net outputs variance
+    #     print "Network outputs diagonal variance"
+    #     cutoff = size_out // 2
+    #     out_mean, out_var = net_out[:, :cutoff], net_out[:, cutoff:]
+    #     # out_var = out_var ** 2 + 1.e-6
+    #     out_var = cgt.exp(out_var) + 1.e-6
+    # else:
+    #     print "Constant variance"
+    #     # TODO make variance always the input
+    #     assert isinstance(config['variance'], float)
+    #     out_mean = net_out
+    #     out_var = cgt.fill(config['variance'], [size_batch, size_out])
+    # net_out = [out_mean, out_var]
+
+    loss_vec = gaussian_diagonal.logprob(Y, net_out, Y_var)
+    if config['param_penal_wt'] > 0.:
         print "Applying penalty on parameter norm"
-        assert config['param_penal_wt'] > 0
         params_flat = cgt.concatenate([p.flatten() for p in params])
         loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
-        loss_raw -= loss_param / size_batch
-    # end of loss definition
-    f_step = cgt.function(inputs, net_out)
-    f_surr = get_surrogate_func(inputs + [Y], net_out,
-                                [loss_raw], params, _dbg_out=dbg_out)
+        loss_vec -= loss_param # / size_batch
+    loss = cgt.sum(loss_vec) / size_batch
 
     # TODO_TZ f_step seems not to fail if X has wrong dim
+    f_step = cgt.function(inputs, net_out)
+    f_surr = get_surrogate_func(inputs + [Y], net_out,
+                                [loss_vec], params, _dbg_out=dbg_out)
+
     return params, f_step, None, None, None, f_surr
 
 
 def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
-              f_update, f_surr, f_init, M):
+              f_update, f_surr, f_init, M, config={}):
     # all data params are of shape (batch_size, 1, dim)
-
-    raise NotImplementedError
+    x = np.squeeze(_Xb, axis=1)
+    y = np.squeeze(_Yb, axis=1)
+    y_var = np.squeeze(_Yb_var, axis=1)
+    info = f_surr(x, y_var, y, num_samples=config['size_sample'])
+    grad = info['grad']
+    f_update(param_col.flatten_values(grad), optim_state)
+    param_col.set_value_flat(optim_state['theta'])
 
 
 def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):

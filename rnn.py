@@ -106,7 +106,7 @@ def make_funcs(config, dbg_out=None):
 
 
 def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
-              f_update, f_surr, f_init, M):
+              f_update, f_surr, f_init, M, config={}):
     # all data params are of shape (batch_size, trajetory length, dim)
     B, T = _Xb.shape[:2]
     t, _Yb_hat = 0, []
