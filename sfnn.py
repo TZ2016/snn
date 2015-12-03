@@ -68,6 +68,7 @@ def make_funcs(config, dbg_out={}):
         out_var = cgt.exp(out_var) + 1.e-6
     else:
         print "Constant variance"
+        # TODO make variance always the input
         assert isinstance(config['variance'], float)
         out_mean = net_out
         out_var = cgt.fill(config['variance'], [size_batch, size_out])
@@ -90,6 +91,8 @@ def make_funcs(config, dbg_out={}):
 
 def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
               f_update, f_surr, f_init, M):
+    # all data params are of shape (batch_size, 1, dim)
+
     raise NotImplementedError
 
 

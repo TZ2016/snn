@@ -111,6 +111,7 @@ def train(Xs, Ys, workspace, config, Ys_var=None):
     assert B <= N, "batch size too large"
     if 'fnn' in workspace['type']:
         assert config['rnn_step'] == 1, "no point to unroll a FNN"
+        assert T == 1, "for FNN, T = 1; use RNN if T > 1"
     if 'snn' in workspace['type']:
         assert B == 1, "not yet supported"
     if 'rnn' in workspace['type']:
