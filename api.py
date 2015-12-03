@@ -96,16 +96,27 @@ def create_net(args):
 def train(Xs, Ys, workspace, config, Ys_var=None,
           dbg_iter=None, dbg_done=None):
     print "=========Start Training========="
-    # perform input check
-    assert Xs.ndim == Ys.ndim == 3, "must of shape (N, T, dX)"
-    assert Xs.shape[:2] == Ys.shape[:2], "X and Y of same shape (N, T)"
+    # transform input if needed
+    dX, dY = Xs.shape[-1], Ys.shape[-1]
+    assert dX == config['num_inputs'] and dY == config['num_outputs']
+    assert Xs.ndim == Ys.ndim and \
+           Xs.shape[:-1] == Ys.shape[:-1], "X and Y must be compatible"
     if config['variance'] == 'in':
         assert Ys_var is not None, "Y variance is required"
         assert Ys_var.shape == Ys.shape, "Y var of same shape as Y"
     else:
         Ys_var = config['variance'] * np.ones_like(Ys)
-    (N, T, dX), dY = Xs.shape, Ys.shape[-1]
-    assert dX == config['num_inputs'] and dY == config['num_outputs']
+    _ndim = Xs.ndim
+    if _ndim == 2:
+        assert 'rnn' not in workspace['type']
+        Xs, Ys = np.expand_dims(Xs, axis=1), np.expand_dims(Ys, axis=1)
+        Ys_var = np.expand_dims(Ys_var, axis=1)
+    elif _ndim == 3:
+        if 'fnn' in workspace['type'] and Xs.shape[1] > 1:
+            Xs, Ys = np.reshape(Xs, (-1, 1, dX)), np.reshape(Ys, (-1, 1, dY))
+            Ys_var = np.reshape(Ys_var, (-1, 1, dY))
+    # various checks
+    N, T = Xs.shape[:2]
     B = config['size_batch']
     M = config['rnn_steps']
     K = config['n_epochs']
@@ -115,6 +126,8 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
         assert T == 1, "for FNN, T = 1; use RNN if T > 1"
     if 'snn' in workspace['type']:
         assert B == 1, "not yet supported"
+    if 'dnn' in workspace['type']:
+        assert config['size_sample'] == 1
     if 'rnn' in workspace['type']:
         assert (T / M) * M == T >= M, "T must be a multiple of M"
     assert 'dump_path' in config and config['dump_path'], 'path required'
