@@ -108,6 +108,7 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
     num_epochs = num_iters = 0
     out_path = config['dump_path']
     print "Dump path: %s" % out_path
+    # _dbg_infos = []
     while num_epochs < config['n_epochs']:
         ind = np.random.choice(X.shape[0], config['size_batch'])
         # ind = [num_iters]  # for ordered data
@@ -117,6 +118,7 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
             info = f_surr(x, y_var, y, num_samples=config['size_sample'])
         else:
             info = f_surr(x, y, num_samples=config['size_sample'])
+        # _dbg_infos.append(info)
         grad = info['grad']
         workspace['update'](param_col.flatten_values(grad), optim_state)
         param_col.set_value_flat(optim_state['theta'])
@@ -125,17 +127,32 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
             num_epochs += 1
             num_iters = 0
             # TODO remove the below
-            h_prob = np.exp(info['objective_unweighted'] - info['weights_raw_log'])
-            print np.unique(np.round(h_prob, 2), return_counts=True)
-            print np.unique(np.round(info['weights'], 3), return_counts=True)
-            if num_epochs % 5 == 0:
-                if config['variance'] == 'in':
-                    _dbg = f_surr(X, Y_var, Y, num_samples=1, sample_only=True)
-                else:
-                    _dbg = f_surr(X, Y, num_samples=1, sample_only=True)
-                pickle.dump(_dbg, safe_path('_sample_e%d.pkl' % num_epochs, out_path, 'w'))
+            # h_prob = np.exp(info['objective_unweighted'] - info['weights_raw_log'])
+            # print np.unique(np.round(h_prob, 2), return_counts=True)
+            # print np.unique(np.round(info['weights'], 3), return_counts=True)
+            # if num_epochs % 5 == 0:
+            #     if config['variance'] == 'in':
+            #         _dbg = f_surr(X, Y_var, Y, num_samples=1, sample_only=True)
+            #     else:
+            #         _dbg = f_surr(X, Y, num_samples=1, sample_only=True)
+            #     pickle.dump(_dbg, safe_path('_sample_e%d.pkl' % num_epochs, out_path, 'w'))
         if dbg_iter:
             dbg_iter(num_epochs, num_iters, info, workspace)
+    # #######################
+    # plt stochastic hidden activations
+    # _pb = np.squeeze([np.exp(_i['objective_unweighted'] - _i['weights_raw_log'])
+    #        for _i in _dbg_infos])
+    # _pb_c = [np.unique(_p, return_counts=True)
+    #          for _p in _pb]
+    # p = np.array([_i[0] for _i in _pb_c])
+    # c = np.array([_i[1] for _i in _pb_c])
+    # import matplotlib.pyplot as plt
+    # plt.bar(range(60), c[:,1])
+    # plt.bar(range(60), c[:,2], bottom=c[:,1],color='r')
+    # plt.bar(range(60), c[:,3], bottom=c[:, 2]+c[:,1],color='y')
+    # plt.bar(range(60), c[:,0], bottom=c[:, 2]+c[:,1]+c[:,3],color='g')
+    # pickle.dump([c, p], open('./asdf.pkl', 'w'))
+    ###########################goi#########
     # save params
     out_path = config['dump_path']
     if not os.path.exists(out_path):
