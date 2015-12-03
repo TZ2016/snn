@@ -100,6 +100,7 @@ def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
     grad = info['grad']
     f_update(param_col.flatten_values(grad), optim_state)
     param_col.set_value_flat(optim_state['theta'])
+    return info
 
 
 def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):

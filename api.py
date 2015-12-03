@@ -93,7 +93,8 @@ def create_net(args):
     return workspace
 
 
-def train(Xs, Ys, workspace, config, Ys_var=None):
+def train(Xs, Ys, workspace, config, Ys_var=None,
+          dbg_iter=None, dbg_done=None):
     print "=========Start Training========="
     # perform input check
     assert Xs.ndim == Ys.ndim == 3, "must of shape (N, T, dX)"
@@ -124,13 +125,16 @@ def train(Xs, Ys, workspace, config, Ys_var=None):
     f_init = workspace['f_init']
     f_train, f_update = workspace['train'], workspace['update']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
+    if not config['debug']:
+        dbg_iter = dbg_done = None
     num_epochs = num_iters = 0
     print "About to train for %d epochs" % K
     while num_epochs < K:
         _is = np.random.choice(N, size=B)  # a list of B indices
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
-        f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
-                f_update, f_surr, f_init, M, config=config)
+        dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
+                           f_update, f_surr, f_init, M, config=config)
+        if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
         num_iters += 1
         if num_iters == N:
             print "Epoch %d ends" % num_epochs
@@ -150,6 +154,7 @@ def train(Xs, Ys, workspace, config, Ys_var=None):
     pickle.dump(param_col.get_values(), safe_path('params.pkl', out_path, 'w'))
     pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
     print "=========DONE Training========="
+    if dbg_done: dbg_done(workspace)
     return param_col, optim_state
 
 

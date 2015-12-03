@@ -27,7 +27,7 @@ init_theta:
 #dump_path: "DYNAMICALLY SET"  # path to dump snapshot for restore
 
 # debugging
-debug: True
+debug: False
 dbg_out_full: True
 dbg_plot_charts: True
 dbg_plot_samples:

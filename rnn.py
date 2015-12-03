@@ -111,6 +111,7 @@ def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
     B, T = _Xb.shape[:2]
     t, _Yb_hat = 0, []
     c_t, h_t = f_init(B)
+    infos = []
     while t + M <= T:
         _xbs = list(_Xb[:, t:t+M].transpose(1, 0, 2))
         _ybs = list(_Yb[:, t:t+M].transpose(1, 0, 2))
@@ -125,8 +126,9 @@ def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
         f_update(param_col.flatten_values(grad), optim_state)
         param_col.set_value_flat(optim_state['theta'])
         _Yb_hat.extend(ys_hat)
+        infos.append(info)
     _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)
-    return _Yb_hat
+    return infos, _Yb_hat
 
 
 def step(Xs, Ys, workspace, config, Ys_var=None):

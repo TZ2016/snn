@@ -26,6 +26,7 @@ def safe_path(rel_path, out_path, flag=None):
 
 
 def example_debug(args, X, Y, Y_var=None):
+    # TODO shape mismatch
     def h_ax(ax, title=None, x=None, y=None):
         if not isinstance(ax, (tuple, list, np.ndarray)): ax = [ax]
         for a in ax:
