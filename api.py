@@ -30,17 +30,19 @@ def create_net(args):
     _is_rec = any(_n != 0 for _n in args['num_mems'])
     assert not (_is_rec and _is_sto), "Stochastic recurrent units not supported"
     net_type = []
+    if _is_sto: net_type.append('snn')
+    else: net_type.append('dnn')
+    if _is_rec: net_type.append('rnn')
+    else: net_type.append('fnn')
     # TODO: add in the dbg_out
-    if _is_sto:
-        print "=========Start building a SFNN========="
-        net_type.extend(['snn', 'sfnn', 'fnn'])
-        f_train = sfnn.step_once
-        params, f_step, f_loss, f_grad, f_init, f_surr = sfnn.make_funcs(args)
-    else:
+    if _is_rec:
         print "=========Start building a DRNN========="
-        net_type.extend(['rnn', 'dnn'])
         f_train = rnn.step_once
         params, f_step, f_loss, f_grad, f_init, f_surr = rnn.make_funcs(args)
+    else:
+        print "=========Start building a SFNN========="
+        f_train = sfnn.step_once
+        params, f_step, f_loss, f_grad, f_init, f_surr = sfnn.make_funcs(args)
     param_col = ParamCollection(params)
     if 'snapshot' in args:
         print "Loading params from previous snapshot: %s" % args['snapshot']
@@ -96,6 +98,8 @@ def create_net(args):
 def train(Xs, Ys, workspace, config, Ys_var=None,
           dbg_iter=None, dbg_done=None):
     print "=========Start Training========="
+    pprint.pprint(config)
+    pprint.pprint(workspace)
     # transform input if needed
     dX, dY = Xs.shape[-1], Ys.shape[-1]
     assert dX == config['num_inputs'] and dY == config['num_outputs']
@@ -148,8 +152,8 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
         dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
                            f_update, f_surr, f_init, M, config=config)
         if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
-        num_iters += 1
-        if num_iters == N:
+        num_iters += B
+        if num_iters >= N:
             print "Epoch %d ends" % num_epochs
             num_epochs += 1
             num_iters = 0
