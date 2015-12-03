@@ -14,15 +14,15 @@ from utils.opt import *
 from utils.debug import safe_path
 
 
-def err_handler(type, flag):
+def _numpy_err_callback(type, flag):
     print type, flag
     traceback.print_stack()
-    raise FloatingPointError('refer to err_handler for more details')
+    raise FloatingPointError('refer to _numpy_err_callback for more details')
 np.seterr(divide='call', over='warn', invalid='call', under='warn')
-np.seterrcall(err_handler)
+np.seterrcall(_numpy_err_callback)
 np.set_printoptions(precision=4, suppress=True)
-print cgt.get_config(True)
 cgt.check_source()
+print cgt.get_config(True)
 
 
 def create_net(args):
