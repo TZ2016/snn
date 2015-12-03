@@ -110,7 +110,7 @@ def train(Xs, Ys, workspace, config, Ys_var=None):
     K = config['n_epochs']
     assert B <= N, "batch size too large"
     if 'fnn' in workspace['type']:
-        assert config['rnn_step'] == 1, "no point to unroll a FNN"
+        assert M == 1, "no point to unroll a FNN"
         assert T == 1, "for FNN, T = 1; use RNN if T > 1"
     if 'snn' in workspace['type']:
         assert B == 1, "not yet supported"
@@ -130,7 +130,7 @@ def train(Xs, Ys, workspace, config, Ys_var=None):
         _is = np.random.choice(N, size=B)  # a list of B indices
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
         f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
-                f_update, f_surr, f_init, M)
+                f_update, f_surr, f_init, M, config=config)
         num_iters += 1
         if num_iters == N:
             print "Epoch %d ends" % num_epochs
@@ -165,14 +165,35 @@ if __name__ == "__main__":
     DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
 
     # recurrent dataset
-    Xs, Ys = data_add(10, 50, dim=2)
+    # Xs, Ys = data_add(10, 50, dim=2)
 
     # feed-forward datset
-    # X, Y, Y_var = data_synthetic_a(1000)
-
-    # X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
+    X, Y, Y_var = data_synthetic_a(1000)
+    X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
+    Xs = np.expand_dims(X, axis=1)
+    Ys = np.expand_dims(Y, axis=1)
+    Ys_var = np.expand_dims(Y_var, axis=1)
 
     DEFAULT_ARGS.update({
+        # test RNN
+        # 'num_inputs': 2,
+        # 'num_outputs': 2,
+        # 'num_units': [6],
+        # 'num_sto': [0],  # not used
+        # 'variance': 0.001,
+        # 'size_sample': 1,
+        # 'num_mems': [4],
+        # 'rnn_steps': 5,
+
+        # test SFNN
+        'num_inputs': 1,
+        'num_outputs': 1,
+        'num_units': [4, 4, 2],
+        'num_sto': [0, 2, 2],  # not used
+        'variance': 0.05,
+        'size_sample': 1,
+        'num_mems': [0, 0, 0],
+        'rnn_steps': 1,
     })
     print "Using arguments:"
     pprint.pprint(DEFAULT_ARGS)

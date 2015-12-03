@@ -47,11 +47,11 @@ def make_funcs(config, dbg_out={}):
     #         if flatten: _samples.extend(_s)
     #         else: _samples.append(_s)
     #     return np.array(_samples)
-    Y = cgt.matrix("Y")
+    Y_gt = cgt.matrix("Y")
     Y_var = cgt.matrix('V', fixed_shape=(None, config['num_inputs']))
     params = nn.get_parameters(net_out)
     size_batch, size_out = net_out.shape
-    inputs, outputs = [net_in, Y_var], [net_out]
+    inputs, outputs = [net_in], [net_out]
     if config['no_bias']:
         print "Excluding bias"
         params = [p for p in params if not p.name.endswith(".b")]
@@ -74,7 +74,7 @@ def make_funcs(config, dbg_out={}):
     #     out_var = cgt.fill(config['variance'], [size_batch, size_out])
     # net_out = [out_mean, out_var]
 
-    loss_vec = gaussian_diagonal.logprob(Y, net_out, Y_var)
+    loss_vec = gaussian_diagonal.logprob(Y_gt, net_out, Y_var)
     if config['param_penal_wt'] > 0.:
         print "Applying penalty on parameter norm"
         params_flat = cgt.concatenate([p.flatten() for p in params])
@@ -83,8 +83,8 @@ def make_funcs(config, dbg_out={}):
     loss = cgt.sum(loss_vec) / size_batch
 
     # TODO_TZ f_step seems not to fail if X has wrong dim
-    f_step = cgt.function(inputs, net_out)
-    f_surr = get_surrogate_func(inputs + [Y], net_out,
+    f_step = cgt.function(inputs, outputs)
+    f_surr = get_surrogate_func(inputs + [Y_var, Y_gt], outputs,
                                 [loss_vec], params, _dbg_out=dbg_out)
 
     return params, f_step, None, None, None, f_surr
