@@ -31,16 +31,16 @@ def create_net(args):
     assert not (_is_rec and _is_sto), "Stochastic recurrent units not supported"
     net_type = []
     # TODO: add in the dbg_out
-    if _is_rec:
-        print "=========Start building a DRNN========="
-        net_type.extend(['rnn', 'dnn'])
-        f_train = rnn.step_once
-        params, f_step, f_loss, f_grad, f_init, f_surr = rnn.make_funcs(args)
-    else:
+    if _is_sto:
         print "=========Start building a SFNN========="
         net_type.extend(['snn', 'sfnn', 'fnn'])
         f_train = sfnn.step_once
         params, f_step, f_loss, f_grad, f_init, f_surr = sfnn.make_funcs(args)
+    else:
+        print "=========Start building a DRNN========="
+        net_type.extend(['rnn', 'dnn'])
+        f_train = rnn.step_once
+        params, f_step, f_loss, f_grad, f_init, f_surr = rnn.make_funcs(args)
     param_col = ParamCollection(params)
     if 'snapshot' in args:
         print "Loading params from previous snapshot: %s" % args['snapshot']
