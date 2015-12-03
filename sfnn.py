@@ -88,6 +88,11 @@ def make_funcs(config, dbg_out={}):
     return params, f_step, None, None, None, f_surr
 
 
+def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
+              f_update, f_surr, f_init, M):
+    raise NotImplementedError
+
+
 def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
     if config['debug'] and (dbg_iter is None or dbg_done is None):
         dbg_iter, dbg_done = example_debug(config, X, Y, Y_var=Y_var)

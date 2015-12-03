@@ -105,6 +105,29 @@ def make_funcs(config, dbg_out=None):
     return params, f_step, f_loss, f_grad, f_init, f_surr
 
 
+def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
+              f_update, f_surr, f_init, M):
+    B, T = _Xb.shape[:2]
+    t, _Yb_hat = 0, []
+    c_t, h_t = f_init(B)
+    while t + M <= T:
+        _xbs = list(_Xb[:, t:t+M].transpose(1, 0, 2))
+        _ybs = list(_Yb[:, t:t+M].transpose(1, 0, 2))
+        _ybs_var = list(_Yb_var[:, t:t+M].transpose(1, 0, 2))
+        t += M
+        info = f_surr(*(_xbs + c_t + h_t + _ybs_var + _ybs))
+        loss, ys_hat, c_t, h_t, grad = info[0], \
+                                       info[1:1+M], \
+                                       info[1+M:1+M+len(c_t)], \
+                                       info[1+M+len(c_t):1+M+2*len(c_t)], \
+                                       info[1+M+2*len(c_t):]
+        f_update(param_col.flatten_values(grad), optim_state)
+        param_col.set_value_flat(optim_state['theta'])
+        _Yb_hat.extend(ys_hat)
+    _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)
+    return _Yb_hat
+
+
 def step(Xs, Ys, workspace, config, Ys_var=None):
     assert Xs.shape[:2] == Ys.shape[:2]
     (N, T, dX), dY = Xs.shape, Ys.shape[-1]

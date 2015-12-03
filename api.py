@@ -11,6 +11,7 @@ from cgt.utility.param_collection import ParamCollection
 import sfnn
 import rnn
 from utils.opt import *
+from utils.debug import safe_path
 
 
 def err_handler(type, flag):
@@ -31,12 +32,14 @@ def create_net(args):
     net_type = []
     # TODO: add in the dbg_out
     if _is_rec:
-        print "=========Building a DRNN========="
+        print "=========Start building a DRNN========="
         net_type.extend(['rnn', 'dnn'])
+        f_train = rnn.step_once
         params, f_step, f_loss, f_grad, f_init, f_surr = rnn.make_funcs(args)
     else:
-        print "=========Building a SFNN========="
+        print "=========Start building a SFNN========="
         net_type.extend(['snn', 'sfnn', 'fnn'])
+        f_train = sfnn.step_once
         params, f_step, f_loss, f_grad, f_init, f_surr = sfnn.make_funcs(args)
     param_col = ParamCollection(params)
     if 'snapshot' in args:
@@ -82,11 +85,71 @@ def create_net(args):
         'f_init': f_init,
         'f_grad': f_grad,
         'update': f_update,
+        'train': f_train
     }
     print "Configurations"
     pprint.pprint(args)
     print "=========DONE BUILDING========="
     return workspace
+
+
+def train(Xs, Ys, workspace, config, Ys_var=None):
+    print "=========Start Training========="
+    # perform input check
+    assert Xs.ndim == Ys.ndim == 3, "must of shape (N, T, dX)"
+    assert Xs.shape[:2] == Ys.shape[:2], "X and Y of same shape (N, T)"
+    if config['variance'] == 'in':
+        assert Ys_var is not None, "Y variance is required"
+        assert Ys_var.shape == Ys.shape, "Y var of same shape as Y"
+    else:
+        Ys_var = config['variance'] * np.ones_like(Ys)
+    (N, T, dX), dY = Xs.shape, Ys.shape[-1]
+    assert dX == config['num_inputs'] and dY == config['num_outputs']
+    B = config['size_batch']
+    M = config['rnn_steps']
+    K = config['n_epochs']
+    assert B <= N, "batch size too large"
+    if 'fnn' in workspace['type']:
+        assert config['rnn_step'] == 1, "no point to unroll a FNN"
+    if 'snn' in workspace['type']:
+        assert B == 1, "not yet supported"
+    if 'rnn' in workspace['type']:
+        assert (T / M) * M == T >= M, "T must be a multiple of M"
+    assert 'dump_path' in config and config['dump_path'], 'path required'
+    out_path = config['dump_path']
+    print "Dump path: %s" % out_path
+    param_col = workspace['param_col']
+    optim_state = workspace['optim_state']
+    f_init = workspace['f_init']
+    f_train, f_update = workspace['train'], workspace['update']
+    f_surr, f_step = workspace['f_surr'], workspace['f_step']
+    num_epochs = num_iters = 0
+    print "About to train for %d epochs" % K
+    while num_epochs < K:
+        _is = np.random.choice(N, size=B)  # a list of B indices
+        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
+        f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
+                f_update, f_surr, f_init, M)
+        num_iters += 1
+        if num_iters == N:
+            print "Epoch %d ends" % num_epochs
+            num_epochs += 1
+            num_iters = 0
+            # import matplotlib.pyplot as plt
+            # _b, _d = 0, 0  # which batch/dim to plot
+            # plt.scatter(range(_Xb[_b,:,_d].size), _Yb[_b,:,_d])
+            # plt.scatter(range(_Xb[_b,:,_d].size), _Xb[_b,:,_d], color='y')
+            # plt.scatter(range(_Xb[_b,:,_d].size), np.array(_Yb_hat)[_b,:,_d], color='r')
+            # plt.close()
+    # save params
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    print "Saving params"
+    # pickle.dump(args, open(_safe_path('args.pkl'), 'w'))
+    pickle.dump(param_col.get_values(), safe_path('params.pkl', out_path, 'w'))
+    pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
+    print "=========DONE Training========="
+    return param_col, optim_state
 
 
 if __name__ == "__main__":
@@ -99,19 +162,19 @@ if __name__ == "__main__":
     PARAMS_PATH = os.path.join(CUR_DIR, 'default_params.yaml')
     DEFAULT_ARGS = yaml.load(open(PARAMS_PATH, 'r'))
     DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
-    print "Default args:"
-    pprint.pprint(DEFAULT_ARGS)
 
     # recurrent dataset
-    # Xs, Ys = data_add(10, 50, dim=2)
+    Xs, Ys = data_add(10, 50, dim=2)
 
     # feed-forward datset
-    X, Y, Y_var = data_synthetic_a(1000)
+    # X, Y, Y_var = data_synthetic_a(1000)
 
-    X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
+    # X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
 
-    # DEFAULT_ARGS.update({
-    #
-    # })
+    DEFAULT_ARGS.update({
+    })
+    print "Using arguments:"
+    pprint.pprint(DEFAULT_ARGS)
+
     problem = create_net(DEFAULT_ARGS)
-    step(X, Y, problem, DEFAULT_ARGS, Y_var=Y_var)
+    train(Xs, Ys, problem, DEFAULT_ARGS, Ys_var=None)
