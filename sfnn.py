@@ -1,30 +1,15 @@
 # Learning Stochastic Feedforward Neural Networks
 
 import os
-import traceback
-import pprint
 import pickle
 import cgt
 from cgt.core import get_surrogate_func
 from cgt import nn
 import numpy as np
-from cgt.utility.param_collection import ParamCollection
 from cgt.distributions import gaussian_diagonal
 
-from utils.opt import rmsprop_create, rmsprop_update, adam_create, adam_update
 from utils.debug import example_debug, safe_path
 from layers import combo_layer
-
-
-def err_handler(type, flag):
-    print type, flag
-    traceback.print_stack()
-    raise FloatingPointError('refer to err_handler for more details')
-np.seterr(divide='call', over='warn', invalid='call', under='warn')
-np.seterrcall(err_handler)
-np.set_printoptions(precision=4, suppress=True)
-print cgt.get_config(True)
-cgt.check_source()
 
 
 def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
@@ -168,83 +153,3 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
     pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
-
-
-def create(args):
-    dbg_out = {}
-    params, f_step, f_loss, f_grad, _, f_surr = make_funcs(args, dbg_out=dbg_out)
-    param_col = ParamCollection(params)
-    if 'snapshot' in args:
-        print "Loading params from previous snapshot: %s" % args['snapshot']
-        optim_state = pickle.load(open(args['snapshot'], 'r'))
-        assert isinstance(optim_state, dict)
-        if optim_state['type'] == 'adam':
-            f_update = adam_update
-        elif optim_state['type'] == 'rmsprop':
-            f_update = rmsprop_update
-        else:
-            raise ValueError
-    else:
-        theta = param_col.get_value_flat()
-        method = args['opt_method'].lower()
-        print "Initializing theta from fresh"
-        if method == 'rmsprop':
-            optim_state = rmsprop_create(theta, step_size=args['step_size'])
-            f_update = rmsprop_update
-        elif method == 'adam':
-            optim_state = adam_create(theta, step_size=args['step_size'])
-            f_update = adam_update
-        else:
-            raise ValueError('unknown optimization method: %s' % method)
-        init_method = args['init_theta']['distr']
-        if init_method == 'XavierNormal':
-            init_theta = nn.XavierNormal(**args['init_theta']['params'])
-        elif init_method == 'gaussian':
-            init_theta = nn.IIDGaussian(**args['init_theta']['params'])
-        else:
-            raise ValueError('unknown init distribution')
-        optim_state['theta'] = nn.init_array(
-            init_theta, (param_col.get_total_size(), 1)).flatten()
-    param_col.set_value_flat(optim_state['theta'])
-    workspace = {
-        'type': ('sfnn', 'fnn', 'snn'),
-        'optim_state': optim_state,
-        'param_col': param_col,
-        'f_surr': f_surr,
-        'f_step': f_step,
-        'f_loss': f_loss,
-        'f_grad': f_grad,
-        'update': f_update,
-    }
-    print "Configurations"
-    pprint.pprint(args)
-    return workspace
-
-
-if __name__ == "__main__":
-    import yaml
-    import time
-    from utils.data import *
-
-    CUR_DIR = os.path.dirname(os.path.realpath(__file__))
-    DUMP_ROOT = os.path.join(CUR_DIR, '_tmp')
-    PARAMS_PATH = os.path.join(CUR_DIR, 'default_params.yaml')
-    DEFAULT_ARGS = yaml.load(open(PARAMS_PATH, 'r'))
-    DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
-    print "Default args:"
-    pprint.pprint(DEFAULT_ARGS)
-
-    X, Y, Y_var = data_synthetic_a(1000)
-    X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
-    problem = create(DEFAULT_ARGS)
-    step(X, Y, problem, DEFAULT_ARGS, Y_var=Y_var)
-
-    # X, Y = data_add(1000, 2)
-    # DEFAULT_ARGS.update({
-    #     'num_units': [2],
-    #     'num_sto': [0],
-    #     'variance': 0.001,
-    #     'size_sample': 1,
-    # })
-    # problem = create(DEFAULT_ARGS)
-    # step(X, Y, problem, DEFAULT_ARGS)

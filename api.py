@@ -2,6 +2,7 @@ from __future__ import division
 import pprint
 import pickle
 import cgt
+import traceback
 import os
 from cgt import nn
 import numpy as np
@@ -10,6 +11,17 @@ from cgt.utility.param_collection import ParamCollection
 import sfnn
 import rnn
 from utils.opt import *
+
+
+def err_handler(type, flag):
+    print type, flag
+    traceback.print_stack()
+    raise FloatingPointError('refer to err_handler for more details')
+np.seterr(divide='call', over='warn', invalid='call', under='warn')
+np.seterrcall(err_handler)
+np.set_printoptions(precision=4, suppress=True)
+print cgt.get_config(True)
+cgt.check_source()
 
 
 def create_net(args):
@@ -75,3 +87,31 @@ def create_net(args):
     pprint.pprint(args)
     print "=========DONE BUILDING========="
     return workspace
+
+
+if __name__ == "__main__":
+    import yaml
+    import time
+    from utils.data import *
+
+    CUR_DIR = os.path.dirname(os.path.realpath(__file__))
+    DUMP_ROOT = os.path.join(CUR_DIR, '_tmp')
+    PARAMS_PATH = os.path.join(CUR_DIR, 'default_params.yaml')
+    DEFAULT_ARGS = yaml.load(open(PARAMS_PATH, 'r'))
+    DEFAULT_ARGS['dump_path'] = os.path.join(DUMP_ROOT, '_%d/' % int(time.time()))
+    print "Default args:"
+    pprint.pprint(DEFAULT_ARGS)
+
+    # recurrent dataset
+    # Xs, Ys = data_add(10, 50, dim=2)
+
+    # feed-forward datset
+    X, Y, Y_var = data_synthetic_a(1000)
+
+    X, Y, Y_var = scale_data(X, Y, Y_var=Y_var)
+
+    # DEFAULT_ARGS.update({
+    #
+    # })
+    problem = create_net(DEFAULT_ARGS)
+    step(X, Y, problem, DEFAULT_ARGS, Y_var=Y_var)
