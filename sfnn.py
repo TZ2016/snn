@@ -49,7 +49,11 @@ def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
     return net_in, net_out
 
 
-def make_funcs(net_in, net_out, config, dbg_out={}):
+def make_funcs(config, dbg_out={}):
+    net_in, net_out = hybrid_network(config['num_inputs'], config['num_outputs'],
+                                     config['num_units'], config['num_sto'],
+                                     dbg_out=dbg_out)
+    if not config['dbg_out_full']: dbg_out = {}
     # def f_sample(_inputs, num_samples=1, flatten=False):
     #     _mean, _var = f_step(_inputs)
     #     _samples = []
@@ -94,8 +98,9 @@ def make_funcs(net_in, net_out, config, dbg_out={}):
     f_step = cgt.function(inputs, net_out)
     f_surr = get_surrogate_func(inputs + [Y], net_out,
                                 [loss_raw], params, _dbg_out=dbg_out)
+
     # TODO_TZ f_step seems not to fail if X has wrong dim
-    return params, f_step, None, None, f_surr
+    return params, f_step, None, None, None, f_surr
 
 
 def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
@@ -167,12 +172,7 @@ def step(X, Y, workspace, config, Y_var=None, dbg_iter=None, dbg_done=None):
 
 def create(args):
     dbg_out = {}
-    net_in, net_out = hybrid_network(args['num_inputs'], args['num_outputs'],
-                                     args['num_units'], args['num_sto'],
-                                     dbg_out=dbg_out)
-    if not args['dbg_out_full']: dbg_out = {}
-    params, f_step, f_loss, f_grad, f_surr = \
-        make_funcs(net_in, net_out, args, dbg_out=dbg_out)
+    params, f_step, f_loss, f_grad, _, f_surr = make_funcs(args, dbg_out=dbg_out)
     param_col = ParamCollection(params)
     if 'snapshot' in args:
         print "Loading params from previous snapshot: %s" % args['snapshot']
