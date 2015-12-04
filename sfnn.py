@@ -48,7 +48,7 @@ def make_funcs(config, dbg_out={}):
     #         else: _samples.append(_s)
     #     return np.array(_samples)
     Y_gt = cgt.matrix("Y")
-    Y_var = cgt.matrix('V', fixed_shape=(None, config['num_inputs'], config['num_inputs']))
+    Y_var = cgt.tensor3('V', fixed_shape=(None, config['num_inputs'], config['num_inputs']))
     params = nn.get_parameters(net_out)
     size_batch, size_out = net_out.shape
     inputs, outputs = [net_in], [net_out]

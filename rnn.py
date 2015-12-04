@@ -74,7 +74,7 @@ def make_funcs(config, dbg_out=None):
     dY = Ys[0].shape[-1]
     Ys_gt = [cgt.matrix(fixed_shape=(size_batch, dY), name='Y%d'%t)
              for t in range(len(Ys))]
-    Ys_var = [cgt.matrix(fixed_shape=(size_batch, dY, dY)) for _ in Ys]
+    Ys_var = [cgt.tensor3(fixed_shape=(size_batch, dY, dY)) for _ in Ys]
     net_inputs, net_outputs = Xs + C_0 + H_0 + Ys_var, Ys + C_T + H_T
 
     # calculate loss
