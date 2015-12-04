@@ -6,7 +6,7 @@ import cgt
 from cgt.core import get_surrogate_func
 from cgt import nn
 import numpy as np
-from cgt.distributions import gaussian_diagonal
+import cgt.distributions as dist
 
 from utils.debug import example_debug, safe_path
 from layers import combo_layer
@@ -48,7 +48,7 @@ def make_funcs(config, dbg_out={}):
     #         else: _samples.append(_s)
     #     return np.array(_samples)
     Y_gt = cgt.matrix("Y")
-    Y_var = cgt.matrix('V', fixed_shape=(None, config['num_inputs']))
+    Y_var = cgt.matrix('V', fixed_shape=(None, config['num_inputs'], config['num_inputs']))
     params = nn.get_parameters(net_out)
     size_batch, size_out = net_out.shape
     inputs, outputs = [net_in], [net_out]
@@ -74,7 +74,7 @@ def make_funcs(config, dbg_out={}):
     #     out_var = cgt.fill(config['variance'], [size_batch, size_out])
     # net_out = [out_mean, out_var]
 
-    loss_vec = gaussian_diagonal.logprob(Y_gt, net_out, Y_var)
+    loss_vec = dist.gaussian.logprob(Y_gt, net_out, Y_var)
     if config['param_penal_wt'] > 0.:
         print "Applying penalty on parameter norm"
         params_flat = cgt.concatenate([p.flatten() for p in params])

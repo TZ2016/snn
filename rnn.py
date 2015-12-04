@@ -4,7 +4,7 @@ import cgt
 import os
 from cgt import nn
 import numpy as np
-from cgt.distributions import gaussian_diagonal
+import cgt.distributions as dist
 
 from layers import lstm_block, combo_layer
 from utils.debug import safe_path
@@ -71,16 +71,17 @@ def make_funcs(config, dbg_out=None):
 
     # basic
     size_batch = Xs[0].shape[0]
-    Ys_gt = [cgt.matrix(fixed_shape=y.get_fixed_shape(), name='Y%d'%t)
-             for t, y in enumerate(Ys)]
-    Ys_var = [cgt.matrix(fixed_shape=y.get_fixed_shape()) for y in Ys]
+    dY = Ys[0].shape[-1]
+    Ys_gt = [cgt.matrix(fixed_shape=(size_batch, dY), name='Y%d'%t)
+             for t in range(len(Ys))]
+    Ys_var = [cgt.matrix(fixed_shape=(size_batch, dY, dY)) for _ in Ys]
     net_inputs, net_outputs = Xs + C_0 + H_0 + Ys_var, Ys + C_T + H_T
 
     # calculate loss
     loss_vec = []
     for i in range(len(Ys)):
         #     if i == 0: continue
-        _l = gaussian_diagonal.logprob(Ys_gt[i], Ys[i], Ys_var[i])
+        _l = dist.gaussian.logprob(Ys_gt[i], Ys[i], Ys_var[i])
         loss_vec.append(_l)
     loss_vec = cgt.add_multi(loss_vec)
     if config['param_penal_wt'] > 0.:

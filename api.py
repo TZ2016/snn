@@ -97,6 +97,7 @@ def create_net(args):
 
 def train(Xs, Ys, workspace, config, Ys_var=None,
           dbg_iter=None, dbg_done=None):
+    "!!! Ys_var is actually the precision matrix"
     print "=========Start Training========="
     pprint.pprint(config)
     pprint.pprint(workspace)
@@ -107,9 +108,11 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
            Xs.shape[:-1] == Ys.shape[:-1], "X and Y must be compatible"
     if config['variance'] == 'in':
         assert Ys_var is not None, "Y variance is required"
-        assert Ys_var.shape == Ys.shape, "Y var of same shape as Y"
+        assert Ys_var.shape[:-1] == Ys.shape and Ys_var.shape[-1] == dY
     else:
-        Ys_var = config['variance'] * np.ones_like(Ys)
+        Ys_var = np.zeros(Ys.shape + (dY,))
+        for i in np.ndindex(Ys_var.shape[:-2]):
+            Ys_var[i] = np.identity(dY) / config['variance']
     _ndim = Xs.ndim
     if _ndim == 2:
         assert 'rnn' not in workspace['type']
