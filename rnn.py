@@ -7,7 +7,7 @@ import numpy as np
 from cgt.distributions import gaussian_diagonal
 
 from layers import lstm_block, combo_layer
-from utils.debug import safe_path
+from utils import safe_path, safe_logadd
 
 
 def lstm_network_t(size_in, size_out, num_units, num_mems, dbg_out={}):
@@ -139,6 +139,7 @@ def step_tmp(param_col, optim_state, _Xb, _Yb, _Yb_var,
     infos = []
     _best_h = []
     H = [0, 1]
+    prev_ttl_loss = 0.
     for _b in range(B):
         loss_b, grad_b = [[], []], [[], []]
         for _t in range(T):
@@ -157,21 +158,24 @@ def step_tmp(param_col, optim_state, _Xb, _Yb, _Yb_var,
                 grad_b[_h].append(grad)
         loss_b = np.array(loss_b).sum(axis=1)
         # print loss_b
-        _h = np.argmax(loss_b)
+        prev_ttl_loss += safe_logadd(loss_b)
         loss_b_n = loss_b - min(loss_b)
-        # if np.isclose(loss_b[0], loss_b[1]):
-        #     _h = 0.5
-        # _h = _b < 5
         _best_h.append(loss_b_n[0] - loss_b_n[1])
         for _h in range(2):
             for grad in grad_b[_h]:
-                f_update(np.exp(loss_b_n[_h]) * param_col.flatten_values(grad), optim_state)
+                f_update(
+                    (np.exp(loss_b_n[_h]) / np.sum(np.exp(loss_b_n))) *
+                    param_col.flatten_values(grad), optim_state
+                )
                 param_col.set_value_flat(optim_state['theta'])
         # _Yb_hat.extend(ys_hat)
         # infos.append(info)
     # _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)
     print _best_h
-    return infos, _Yb_hat
+    print prev_ttl_loss
+    return {
+        'prev_ttl_loss': prev_ttl_loss
+    }
 
 
 def step(Xs, Ys, workspace, config, Ys_var=None):
