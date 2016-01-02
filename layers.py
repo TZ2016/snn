@@ -49,6 +49,22 @@ def mask_layer(func, X, size_in, i_start, i_end=None):
 def combo_layer(X, size_in, size_out, splits,
                 s_funcs=None, o_funcs=None,
                 name='?', dbg_out={}):
+    """
+    Create a combination of specified sub-layers and non-linearity.
+
+    :param X: symbolic input
+    :param size_in: input size (except batch)
+    :param size_out: output size (except batch)
+    :param splits: split points for applying each sub-layer
+    :param s_funcs: list of functions to create each sub-layer
+        of signature (input, in_size, out_size, name) -> output
+    :param o_funcs: list of non-linearity functions
+        of signature (input) -> output
+    :param name: layer name
+    :type name: str
+    :return: symbolic output
+    """
+
     assert isinstance(splits, tuple) and len(splits) > 0
     assert all(splits[i] < splits[i+1] for i in xrange(len(splits) - 1))
     assert splits[0] >= 0 and splits[-1] <= size_out
