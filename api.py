@@ -119,10 +119,10 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
         Xs, Ys = np.expand_dims(Xs, axis=1), np.expand_dims(Ys, axis=1)
         Ys_var = np.expand_dims(Ys_var, axis=1)
     elif _ndim == 3:
-        pass
-        # if 'fnn' in workspace['type'] and Xs.shape[1] > 1:
-        #     Xs, Ys = np.reshape(Xs, (-1, 1, dX)), np.reshape(Ys, (-1, 1, dY))
-        #     Ys_var = np.reshape(Ys_var, (-1, 1, dY))
+        # pass
+        if 'fnn' in workspace['type'] and Xs.shape[1] > 1:
+            Xs, Ys = np.reshape(Xs, (-1, 1, dX)), np.reshape(Ys, (-1, 1, dY))
+            Ys_var = np.reshape(Ys_var, (-1, 1, dY))
     # various checks
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -131,9 +131,9 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
     assert B <= N, "batch size too large"
     if 'fnn' in workspace['type']:
         assert M == 1, "no point to unroll a FNN"
-        # assert T == 1, "for FNN, T = 1; use RNN if T > 1"
-    # if 'snn' in workspace['type']:
-    #     assert B == 1, "not yet supported"
+        assert T == 1, "for FNN, T = 1; use RNN if T > 1"
+    if 'snn' in workspace['type']:
+        assert B == 1, "not yet supported"
     if 'dnn' in workspace['type']:
         assert config['size_sample'] == 1
     if 'rnn' in workspace['type']:
@@ -151,11 +151,13 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
     num_epochs = num_iters = 0
     print "About to train for %d epochs" % K
     while num_epochs < K:
-        # _is = np.random.choice(N, size=B)  # a list of B indices
-        _is = range(B)
+        _is = np.random.choice(N, size=B)  # a list of B indices
+        # _is = range(B)
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
-        dbg_data = rnn.step_tmp(param_col, optim_state, _Xb, _Yb, _Yb_var,
+        dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
                            f_update, f_surr, f_init, M, config=config)
+        # dbg_data = rnn.step_tmp(param_col, optim_state, _Xb, _Yb, _Yb_var,
+        #                         f_update, f_surr, f_init, M, config=config)
         if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
         num_iters += B
         if num_iters >= N:
