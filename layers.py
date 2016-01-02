@@ -63,6 +63,10 @@ def combo_layer(X, size_in, size_out, splits,
     :param name: layer name
     :type name: str
     :return: symbolic output
+
+    Note for s_funcs and o_funcs:
+        - broadcasting enabled if not a list
+        - element with value None has no effect (skip)
     """
 
     assert isinstance(splits, tuple) and len(splits) > 0
@@ -88,11 +92,8 @@ def combo_layer(X, size_in, size_out, splits,
     for _split, _f_s, _f_o in zip(splits, s_funcs, o_funcs):
         _name = 'L%s[%d:%d]' % (name, curr, _split)
         _s_out = _split - curr
-        if _f_s is None:
-            _i = cgt.sigmoid(nn.Affine(size_in, _s_out, name=_name)(X))
-        else:
-            _i = _f_s(X, size_in, _s_out, name=_name)
-        _o = _f_o(_i) if _f_o is not None else _i
+        _i = X if _f_s is None else _f_s(X, size_in, _s_out, name=_name)
+        _o = _i if _f_o is None else _f_o(_i)
         curr = _split
         ins.append(_i)
         outs.append(_o)
@@ -101,6 +102,10 @@ def combo_layer(X, size_in, size_out, splits,
     dbg_out.update(dict(zip([_n + '~in' for _n in names], ins)))
     dbg_out.update(dict(zip([_n + '~out' for _n in names], outs)))
     return out
+
+
+def s_func_ip(X, size_in, size_out, name):
+    return nn.Affine(size_in, size_out, name=name)(X)
 
 
 def lstm_block(h_prev, c_prev, x_curr, size_x, size_c, name=''):

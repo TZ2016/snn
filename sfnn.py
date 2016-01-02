@@ -9,7 +9,7 @@ import numpy as np
 import cgt.distributions as dist
 
 from utils.debug import example_debug, safe_path
-from layers import combo_layer
+from layers import combo_layer, s_func_ip
 
 
 def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
@@ -22,7 +22,8 @@ def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
         assert curr_num_units >= curr_num_sto >= 0
         prev_out = combo_layer(prev_out, prev_num_units, curr_num_units,
                                (curr_num_sto,),
-                               o_funcs=(cgt.bernoulli, None),
+                               s_funcs=s_func_ip,
+                               o_funcs=(lambda x: cgt.bernoulli(cgt.sigmoid(x)), cgt.sigmoid),
                                name=str(curr_layer), dbg_out=dbg_out)
         dbg_out['L%d~out' % curr_layer] = prev_out
         prev_num_units = curr_num_units
