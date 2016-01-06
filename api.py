@@ -13,6 +13,7 @@ import sfnn
 import rnn
 from utils.opt import *
 from utils.debug import safe_path
+from utils.utilities import NONE
 
 
 def _numpy_err_callback(type, flag):
@@ -104,6 +105,7 @@ def _check(workspace, Xs=None, Ys=None, Ys_var=None, Ys_prec=None):
     assert dX == config['num_inputs']
     if Ys is None:
         assert Ys_var is None and Ys_prec is None
+        Ys = Ys_var = Ys_prec = NONE
     else:
         dY = Ys.shape[-1]
         assert Ys_var is None or Ys_prec is None
@@ -125,13 +127,13 @@ def _check(workspace, Xs=None, Ys=None, Ys_var=None, Ys_prec=None):
     if _ndim == 2:
         assert 'rnn' not in workspace['type']
         Xs = np.expand_dims(Xs, axis=1)
-        if Ys is not None:
+        if Ys is not NONE:
             Ys = np.expand_dims(Ys, axis=1)
             Ys_prec = np.expand_dims(Ys_prec, axis=1)
     elif _ndim == 3:
         if 'fnn' in workspace['type'] and Xs.shape[1] > 1:
             Xs = np.reshape(Xs, (-1, 1, dX))
-            if Ys is not None:
+            if Ys is not NONE:
                 Ys = np.reshape(Ys, (-1, 1, dY))
                 Ys_prec = np.reshape(Ys_prec, (-1, 1, dY))
     # various checks
@@ -155,23 +157,26 @@ def forward(workspace, Xs,
             Ys=None, Ys_var=None, Ys_prec=None,
             dbg_iter=None, dbg_done=None):
     config = workspace['config']
+    assert 'rnn' not in workspace['type']
     # pprint.pprint(config)
     # pprint.pprint(workspace)
     Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
     N, T = Xs.shape[:2]
     B = config['size_batch']
-    M = config['rnn_steps']
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
-    f_init = workspace['f_init']
-    f_train, f_update = workspace['train'], workspace['update']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     if not config['debug']: dbg_iter = dbg_done = None
     for b in range(int(np.ceil(N / B))):
         _is = np.arange(b*B, min(N, B*(b+1)))
+        if Ys is None:
+            pass
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
-        dbg_data = f_step(_Xb)
-        if dbg_iter: dbg_iter(-1, b*B, dbg_data, workspace)
+        _xb = np.squeeze(_Xb, axis=1)
+        if _Yb is not NONE:
+            pass
+        out = f_step(_xb)[0]
+        if dbg_iter: dbg_iter(-1, b*B, out, workspace)
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
 
