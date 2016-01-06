@@ -2,6 +2,7 @@ from __future__ import division
 import pprint
 import pickle
 import cgt
+import copy
 import traceback
 import os
 from cgt import nn
@@ -87,7 +88,8 @@ def init(args):
         'f_init': f_init,
         'f_grad': f_grad,
         'update': f_update,
-        'train': f_train
+        'train': f_train,
+        'config': copy.deepcopy(args),
     }
     print "Configurations"
     pprint.pprint(args)
@@ -138,9 +140,6 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
         assert config['size_sample'] == 1
     if 'rnn' in workspace['type']:
         assert (T / M) * M == T >= M, "T must be a multiple of M"
-    assert 'dump_path' in config and config['dump_path'], 'path required'
-    out_path = config['dump_path']
-    print "Dump path: %s" % out_path
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
     f_init = workspace['f_init']
@@ -170,16 +169,23 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
             # plt.scatter(range(_Xb[_b,:,_d].size), _Xb[_b,:,_d], color='y')
             # plt.scatter(range(_Xb[_b,:,_d].size), np.array(_Yb_hat)[_b,:,_d], color='r')
             # plt.close()
-    # save params
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
-    print "Saving params"
-    # pickle.dump(args, open(_safe_path('args.pkl'), 'w'))
-    pickle.dump(param_col.get_values(), safe_path('params.pkl', out_path, 'w'))
-    pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
     print "=========DONE Training========="
+    if 'dump_path' in config and config['dump_path']:
+        save(config['dump_path'], workspace)
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
+
+
+def save(root_dir, ws):
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+    print "Saving params to %s" % (root_dir, )
+    try:
+        pickle.dump(ws['config'], safe_path('args.pkl', root_dir, 'w'))
+        pickle.dump(ws['param_col'].get_values(), safe_path('params.pkl', root_dir, 'w'))
+        pickle.dump(ws['optim_state'], safe_path('__snapshot.pkl', root_dir, 'w'))
+    except:
+        print "Warning: saving params failed!"
 
 
 if __name__ == "__main__":
