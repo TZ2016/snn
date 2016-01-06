@@ -105,7 +105,7 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
     pprint.pprint(workspace)
     # transform input if needed
     dX, dY = Xs.shape[-1], Ys.shape[-1]
-    # assert dX == config['num_inputs'] and dY == config['num_outputs']
+    assert dX == config['num_inputs'] and dY == config['num_outputs']
     assert Xs.ndim == Ys.ndim and \
            Xs.shape[:-1] == Ys.shape[:-1], "X and Y must be compatible"
     if config['variance'] == 'in':
@@ -147,28 +147,25 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     if not config['debug']:
         dbg_iter = dbg_done = None
-    num_epochs = num_iters = 0
+    num_epochs, num_iters = -1, N
     print "About to train for %d epochs" % K
     while num_epochs < K:
-        _is = np.random.choice(N, size=B)  # a list of B indices
-        # _is = range(B)
-        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
-        dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
-                           f_update, f_surr, f_init, M, config=config)
-        # dbg_data = rnn.step_tmp(param_col, optim_state, _Xb, _Yb, _Yb_var,
-        #                         f_update, f_surr, f_init, M, config=config)
-        if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
-        num_iters += B
         if num_iters >= N:
-            print "Epoch %d ends" % num_epochs
-            num_epochs += 1
-            num_iters = 0
+            _ind = np.random.choice(N, replace=False, size=N)
+            num_epochs, num_iters = num_epochs + 1, 0
+            print "Epoch %d starts" % num_epochs
             # import matplotlib.pyplot as plt
             # _b, _d = 0, 0  # which batch/dim to plot
             # plt.scatter(range(_Xb[_b,:,_d].size), _Yb[_b,:,_d])
             # plt.scatter(range(_Xb[_b,:,_d].size), _Xb[_b,:,_d], color='y')
             # plt.scatter(range(_Xb[_b,:,_d].size), np.array(_Yb_hat)[_b,:,_d], color='r')
             # plt.close()
+        _is = _ind[num_iters:num_iters+B]
+        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
+        dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
+                           f_update, f_surr, f_init, M, config=config)
+        if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
+        num_iters += B
     print "=========DONE Training========="
     if 'dump_path' in config and config['dump_path']:
         save(config['dump_path'], workspace)
