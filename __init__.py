@@ -1,1 +1,1 @@
-from api import init, train, save, forward
+from api import init, train, save, forward, evaluate

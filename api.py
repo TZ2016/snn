@@ -154,12 +154,30 @@ def _check(workspace, Xs=None, Ys=None, Ys_var=None, Ys_prec=None):
 
 
 def forward(workspace, Xs,
-            Ys=None, Ys_var=None, Ys_prec=None,
             dbg_iter=None, dbg_done=None):
     config = workspace['config']
     assert 'rnn' not in workspace['type']
-    # pprint.pprint(config)
-    # pprint.pprint(workspace)
+    Xs, Ys, Ys_prec = _check(workspace, Xs)
+    N, T = Xs.shape[:2]
+    B = config['size_batch']
+    param_col = workspace['param_col']
+    optim_state = workspace['optim_state']
+    f_surr, f_step = workspace['f_surr'], workspace['f_step']
+    if not config['debug']: dbg_iter = dbg_done = None
+    for b in range(int(np.ceil(N / B))):
+        _is = np.arange(b*B, min(N, B*(b+1)))
+        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
+        _xb = np.squeeze(_Xb, axis=1)
+        out = f_step(_xb)[0]
+        if dbg_iter: dbg_iter(-1, b*B, out, workspace)
+    if dbg_done: dbg_done(workspace)
+    return param_col, optim_state
+
+
+def evaluate(workspace, Xs, Ys, Ys_var, Ys_prec,
+         dbg_iter=None, dbg_done=None):
+    config = workspace['config']
+    assert 'rnn' not in workspace['type']
     Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -171,12 +189,9 @@ def forward(workspace, Xs,
         _is = np.arange(b*B, min(N, B*(b+1)))
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
         _xb = np.squeeze(_Xb, axis=1)
-        if _Yb is not NONE:
-            _yb = np.squeeze(_Yb, axis=1)
-            _yb_prec = np.squeeze(_Yb_var, axis=1)
-            out = f_surr(_xb, _yb_prec, _yb, num_samples=config['size_sample'])
-        else:
-            out = f_step(_xb)[0]
+        _yb = np.squeeze(_Yb, axis=1)
+        _yb_prec = np.squeeze(_Yb_var, axis=1)
+        out = f_surr(_xb, _yb_prec, _yb, num_samples=config['size_sample'])
         if dbg_iter: dbg_iter(-1, b*B, out, workspace)
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
