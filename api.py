@@ -25,7 +25,7 @@ cgt.check_source()
 print cgt.get_config(True)
 
 
-def create_net(args):
+def init(args):
     _is_sto = any(_n != 0 for _n in args['num_sto'])
     _is_rec = any(_n != 0 for _n in args['num_mems'])
     assert not (_is_rec and _is_sto), "Stochastic recurrent units not supported"
@@ -227,5 +227,5 @@ if __name__ == "__main__":
     print "Using arguments:"
     pprint.pprint(DEFAULT_ARGS)
 
-    problem = create_net(DEFAULT_ARGS)
+    problem = init(DEFAULT_ARGS)
     train(Xs, Ys, problem, DEFAULT_ARGS, Ys_var=None)

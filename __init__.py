@@ -1,1 +1,1 @@
-from api import create_net, train
+from api import init, train
