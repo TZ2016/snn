@@ -97,35 +97,43 @@ def init(args):
     return workspace
 
 
-def _check(Xs, Ys, workspace, Ys_var, Ys_prec):
-    assert Ys_var is None or Ys_prec is None
-    assert Ys_var is None, "for historical reasons"
-    if Ys_prec is None and Ys_var is not None:
-        # TODO_TZ: calculate the inverse for convenience
-        'unreachable, todo in the future'
+def _check(workspace, Xs=None, Ys=None, Ys_var=None, Ys_prec=None):
     config = workspace['config']
     # transform input if needed
-    dX, dY = Xs.shape[-1], Ys.shape[-1]
-    assert dX == config['num_inputs'] and dY == config['num_outputs']
-    assert Xs.ndim == Ys.ndim and \
-           Xs.shape[:-1] == Ys.shape[:-1], "X and Y must be compatible"
-    if config['variance'] == 'in':
-        assert Ys_prec is not None, "Y precision is required"
-        assert Ys_prec.shape[:-1] == Ys.shape and Ys_prec.shape[-1] == dY
+    dX = Xs.shape[-1]
+    assert dX == config['num_inputs']
+    if Ys is None:
+        assert Ys_var is None and Ys_prec is None
     else:
-        Ys_prec = np.zeros(Ys.shape + (dY,))
-        for i in np.ndindex(Ys_prec.shape[:-2]):
-            Ys_prec[i] = np.identity(dY) / config['variance']
+        dY = Ys.shape[-1]
+        assert Ys_var is None or Ys_prec is None
+        assert Ys_var is None, "for historical reasons"
+        if Ys_prec is None and Ys_var is not None:
+            # TODO_TZ: calculate the inverse for convenience
+            'unreachable, todo in the future'
+        assert dY is None or dY == config['num_outputs']
+        assert Xs.ndim == Ys.ndim and \
+               Xs.shape[:-1] == Ys.shape[:-1], "X and Y must be compatible"
+        if config['variance'] == 'in':
+            assert Ys_prec is not None, "Y precision is required"
+            assert Ys_prec.shape[:-1] == Ys.shape and Ys_prec.shape[-1] == dY
+        else:
+            Ys_prec = np.zeros(Ys.shape + (dY,))
+            for i in np.ndindex(Ys_prec.shape[:-2]):
+                Ys_prec[i] = np.identity(dY) / config['variance']
     _ndim = Xs.ndim
     if _ndim == 2:
         assert 'rnn' not in workspace['type']
-        Xs, Ys = np.expand_dims(Xs, axis=1), np.expand_dims(Ys, axis=1)
-        Ys_prec = np.expand_dims(Ys_prec, axis=1)
+        Xs = np.expand_dims(Xs, axis=1)
+        if Ys is not None:
+            Ys = np.expand_dims(Ys, axis=1)
+            Ys_prec = np.expand_dims(Ys_prec, axis=1)
     elif _ndim == 3:
-        # pass
         if 'fnn' in workspace['type'] and Xs.shape[1] > 1:
-            Xs, Ys = np.reshape(Xs, (-1, 1, dX)), np.reshape(Ys, (-1, 1, dY))
-            Ys_prec = np.reshape(Ys_prec, (-1, 1, dY))
+            Xs = np.reshape(Xs, (-1, 1, dX))
+            if Ys is not None:
+                Ys = np.reshape(Ys, (-1, 1, dY))
+                Ys_prec = np.reshape(Ys_prec, (-1, 1, dY))
     # various checks
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -143,8 +151,8 @@ def _check(Xs, Ys, workspace, Ys_var, Ys_prec):
     return Xs, Ys, Ys_prec
 
 
-def forward(workspace, Xs, Ys,
-            Ys_var=None, Ys_prec=None,
+def forward(workspace, Xs,
+            Ys=None, Ys_var=None, Ys_prec=None,
             dbg_iter=None, dbg_done=None):
     config = workspace['config']
     # pprint.pprint(config)
