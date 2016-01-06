@@ -97,29 +97,34 @@ def init(args):
     return workspace
 
 
-def _check(Xs, Ys, workspace, config, Ys_var):
+def _check(Xs, Ys, workspace, config, Ys_var, Ys_prec):
+    assert Ys_var is None or Ys_prec is None
+    assert Ys_var is None, "for historical reasons"
+    if Ys_prec is None and Ys_var is not None:
+        # TODO_TZ: calculate the inverse for convenience
+        'unreachable, todo in the future'
     # transform input if needed
     dX, dY = Xs.shape[-1], Ys.shape[-1]
     assert dX == config['num_inputs'] and dY == config['num_outputs']
     assert Xs.ndim == Ys.ndim and \
            Xs.shape[:-1] == Ys.shape[:-1], "X and Y must be compatible"
     if config['variance'] == 'in':
-        assert Ys_var is not None, "Y variance is required"
-        assert Ys_var.shape[:-1] == Ys.shape and Ys_var.shape[-1] == dY
+        assert Ys_prec is not None, "Y precision is required"
+        assert Ys_prec.shape[:-1] == Ys.shape and Ys_prec.shape[-1] == dY
     else:
-        Ys_var = np.zeros(Ys.shape + (dY,))
-        for i in np.ndindex(Ys_var.shape[:-2]):
-            Ys_var[i] = np.identity(dY) / config['variance']
+        Ys_prec = np.zeros(Ys.shape + (dY,))
+        for i in np.ndindex(Ys_prec.shape[:-2]):
+            Ys_prec[i] = np.identity(dY) / config['variance']
     _ndim = Xs.ndim
     if _ndim == 2:
         assert 'rnn' not in workspace['type']
         Xs, Ys = np.expand_dims(Xs, axis=1), np.expand_dims(Ys, axis=1)
-        Ys_var = np.expand_dims(Ys_var, axis=1)
+        Ys_prec = np.expand_dims(Ys_prec, axis=1)
     elif _ndim == 3:
         # pass
         if 'fnn' in workspace['type'] and Xs.shape[1] > 1:
             Xs, Ys = np.reshape(Xs, (-1, 1, dX)), np.reshape(Ys, (-1, 1, dY))
-            Ys_var = np.reshape(Ys_var, (-1, 1, dY))
+            Ys_prec = np.reshape(Ys_prec, (-1, 1, dY))
     # various checks
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -134,15 +139,15 @@ def _check(Xs, Ys, workspace, config, Ys_var):
         assert config['size_sample'] == 1
     if 'rnn' in workspace['type']:
         assert (T / M) * M == T >= M, "T must be a multiple of M"
-    return Xs, Ys, Ys_var
+    return Xs, Ys, Ys_prec
 
 
-def train(Xs, Ys, workspace, config, Ys_var=None,
+def train(Xs, Ys, workspace, config,
+          Ys_var=None, Ys_prec=None,
           dbg_iter=None, dbg_done=None):
-    "!!! Ys_var is actually the precision matrix"
     pprint.pprint(config)
     pprint.pprint(workspace)
-    Xs, Ys, Ys_var = _check(Xs, Ys, workspace, config, Ys_var)
+    Xs, Ys, Ys_prec = _check(Xs, Ys, workspace, config, Ys_var, Ys_prec)
     print "=========Start Training========="
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -153,9 +158,8 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
     f_init = workspace['f_init']
     f_train, f_update = workspace['train'], workspace['update']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
-    if not config['debug']:
-        dbg_iter = dbg_done = None
     num_epochs, num_iters = -1, N
+    if not config['debug']: dbg_iter = dbg_done = None
     print "About to train for %d epochs" % K
     while num_epochs < K:
         if num_iters >= N:
@@ -169,7 +173,7 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
             # plt.scatter(range(_Xb[_b,:,_d].size), np.array(_Yb_hat)[_b,:,_d], color='r')
             # plt.close()
         _is = _ind[num_iters:num_iters+B]
-        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_var[_is]  # (B, T, dim)
+        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
         dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
                            f_update, f_surr, f_init, M, config=config)
         if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
@@ -191,6 +195,7 @@ def save(root_dir, ws):
         pickle.dump(ws['optim_state'], safe_path('__snapshot.pkl', root_dir, 'w'))
     except:
         print "Warning: saving params failed!"
+        input("Save the params manually before too late")
 
 
 if __name__ == "__main__":
@@ -239,4 +244,4 @@ if __name__ == "__main__":
     pprint.pprint(DEFAULT_ARGS)
 
     problem = init(DEFAULT_ARGS)
-    train(Xs, Ys, problem, DEFAULT_ARGS, Ys_var=None)
+    train(Xs, Ys, problem, DEFAULT_ARGS, Ys_prec=None)
