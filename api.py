@@ -142,6 +142,32 @@ def _check(Xs, Ys, workspace, config, Ys_var, Ys_prec):
     return Xs, Ys, Ys_prec
 
 
+def forward(Xs, Ys, workspace, config,
+            Ys_var=None, Ys_prec=None,
+            dbg_iter=None, dbg_done=None):
+    # TOOD_TZ:
+    pprint.pprint(config)
+    pprint.pprint(workspace)
+    Xs, Ys, Ys_prec = _check(Xs, Ys, workspace, config, Ys_var, Ys_prec)
+    N, T = Xs.shape[:2]
+    B = config['size_batch']
+    M = config['rnn_steps']
+    param_col = workspace['param_col']
+    optim_state = workspace['optim_state']
+    f_init = workspace['f_init']
+    f_train, f_update = workspace['train'], workspace['update']
+    f_surr, f_step = workspace['f_surr'], workspace['f_step']
+    if not config['debug']: dbg_iter = dbg_done = None
+    for b in range(int(np.ceil(N / B))):
+        _is = np.arange(b*B, min(N, B*(b+1)))
+        _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
+        dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
+                           f_update, f_surr, f_init, M, config=config, no_update=True)
+        if dbg_iter: dbg_iter(-1, b*B, dbg_data, workspace)
+    if dbg_done: dbg_done(workspace)
+    return param_col, optim_state
+
+
 def train(Xs, Ys, workspace, config,
           Ys_var=None, Ys_prec=None,
           dbg_iter=None, dbg_done=None):
