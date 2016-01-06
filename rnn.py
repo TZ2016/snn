@@ -108,7 +108,7 @@ def make_funcs(config, dbg_out=None):
 
 
 def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
-              f_update, f_surr, f_init, M, config={}, no_update=False):
+              f_update, f_surr, f_init, M, config={}):
     # all data params are of shape (batch_size, trajetory length, dim)
     B, T = _Xb.shape[:2]
     t, _Yb_hat = 0, []
@@ -125,9 +125,8 @@ def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
                                        info[1+M:1+M+len(c_t)], \
                                        info[1+M+len(c_t):1+M+2*len(c_t)], \
                                        info[1+M+2*len(c_t):]
-        if not no_update:
-            f_update(param_col.flatten_values(grad), optim_state)
-            param_col.set_value_flat(optim_state['theta'])
+        f_update(param_col.flatten_values(grad), optim_state)
+        param_col.set_value_flat(optim_state['theta'])
         _Yb_hat.extend(ys_hat)
         infos.append(info)
     _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)

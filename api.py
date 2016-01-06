@@ -170,8 +170,7 @@ def forward(workspace, Xs,
     for b in range(int(np.ceil(N / B))):
         _is = np.arange(b*B, min(N, B*(b+1)))
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
-        dbg_data = f_train(param_col, optim_state, _Xb, _Yb, _Yb_var,
-                           f_update, f_surr, f_init, M, config=config, no_update=True)
+        dbg_data = f_step(_Xb)
         if dbg_iter: dbg_iter(-1, b*B, dbg_data, workspace)
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
