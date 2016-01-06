@@ -174,8 +174,9 @@ def forward(workspace, Xs,
     return param_col, optim_state
 
 
-def evaluate(workspace, Xs, Ys, Ys_var, Ys_prec,
-         dbg_iter=None, dbg_done=None):
+def evaluate(workspace, Xs, Ys,
+             Ys_var=None, Ys_prec=None,
+             dbg_iter=None, dbg_done=None):
     config = workspace['config']
     assert 'rnn' not in workspace['type']
     Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
