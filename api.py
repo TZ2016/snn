@@ -97,12 +97,7 @@ def init(args):
     return workspace
 
 
-def train(Xs, Ys, workspace, config, Ys_var=None,
-          dbg_iter=None, dbg_done=None):
-    "!!! Ys_var is actually the precision matrix"
-    print "=========Start Training========="
-    pprint.pprint(config)
-    pprint.pprint(workspace)
+def _check(Xs, Ys, workspace, config, Ys_var):
     # transform input if needed
     dX, dY = Xs.shape[-1], Ys.shape[-1]
     assert dX == config['num_inputs'] and dY == config['num_outputs']
@@ -129,7 +124,6 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
     N, T = Xs.shape[:2]
     B = config['size_batch']
     M = config['rnn_steps']
-    K = config['n_epochs']
     assert B <= N, "batch size too large"
     if 'fnn' in workspace['type']:
         assert M == 1, "no point to unroll a FNN"
@@ -140,6 +134,20 @@ def train(Xs, Ys, workspace, config, Ys_var=None,
         assert config['size_sample'] == 1
     if 'rnn' in workspace['type']:
         assert (T / M) * M == T >= M, "T must be a multiple of M"
+    return Xs, Ys, Ys_var
+
+
+def train(Xs, Ys, workspace, config, Ys_var=None,
+          dbg_iter=None, dbg_done=None):
+    "!!! Ys_var is actually the precision matrix"
+    pprint.pprint(config)
+    pprint.pprint(workspace)
+    Xs, Ys, Ys_var = _check(Xs, Ys, workspace, config, Ys_var)
+    print "=========Start Training========="
+    N, T = Xs.shape[:2]
+    B = config['size_batch']
+    M = config['rnn_steps']
+    K = config['n_epochs']
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
     f_init = workspace['f_init']
