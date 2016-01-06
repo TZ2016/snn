@@ -169,13 +169,14 @@ def forward(workspace, Xs,
     if not config['debug']: dbg_iter = dbg_done = None
     for b in range(int(np.ceil(N / B))):
         _is = np.arange(b*B, min(N, B*(b+1)))
-        if Ys is None:
-            pass
         _Xb, _Yb, _Yb_var = Xs[_is], Ys[_is], Ys_prec[_is]  # (B, T, dim)
         _xb = np.squeeze(_Xb, axis=1)
         if _Yb is not NONE:
-            pass
-        out = f_step(_xb)[0]
+            _yb = np.squeeze(_Yb, axis=1)
+            _yb_prec = np.squeeze(_Yb_var, axis=1)
+            out = f_surr(_xb, _yb_prec, _yb, num_samples=config['size_sample'])
+        else:
+            out = f_step(_xb)[0]
         if dbg_iter: dbg_iter(-1, b*B, out, workspace)
     if dbg_done: dbg_done(workspace)
     return param_col, optim_state
