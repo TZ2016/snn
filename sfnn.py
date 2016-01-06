@@ -92,15 +92,16 @@ def make_funcs(config, dbg_out={}):
 
 
 def step_once(param_col, optim_state, _Xb, _Yb, _Yb_var,
-              f_update, f_surr, f_init, M, config={}):
+              f_update, f_surr, f_init, M, config={}, no_update=False):
     # all data params are of shape (batch_size, 1, dim)
     x = np.squeeze(_Xb, axis=1)
     y = np.squeeze(_Yb, axis=1)
     y_var = np.squeeze(_Yb_var, axis=1)
     info = f_surr(x, y_var, y, num_samples=config['size_sample'])
     grad = info['grad']
-    f_update(param_col.flatten_values(grad), optim_state)
-    param_col.set_value_flat(optim_state['theta'])
+    if not no_update:
+        f_update(param_col.flatten_values(grad), optim_state)
+        param_col.set_value_flat(optim_state['theta'])
     return info
 
 
