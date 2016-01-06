@@ -53,6 +53,7 @@ def example_debug(args, X, Y, Y_var=None):
                     plt.setp(a.get_yticklabels()[-1], visible=True)
                 else:
                     raise KeyError
+    X, Y, Y_var = np.squeeze(X, axis=1), np.squeeze(Y, axis=1), np.squeeze(Y_var, axis=1)
     N, _ = X.shape
     _safe_path = lambda p: safe_path(p, args['dump_path'])
     conv_smoother = lambda x: np.convolve(x, [1. / N] * N, mode='valid')
@@ -80,14 +81,11 @@ def example_debug(args, X, Y, Y_var=None):
             print "Mean objective = %f" % np.mean(it_loss_surr[-N:])
             if args['dbg_plot_samples']['plot']:
                 s_ind = np.random.choice(N, size=args['dbg_plot_samples']['batch'], replace=False)
-                s_X = X[s_ind, :]
-                if args['variance'] == 'in':
-                    s_Y_var_in = Y_var[s_ind, :]
-                    s_Y_mean, s_Y_var = f_step(s_X, s_Y_var_in)
-                else:
-                    s_Y_mean, s_Y_var = f_step(s_X)
+                s_X, s_Y_var = X[s_ind, :], 1. / Y_var[s_ind, :]
+                s_Y_mean = f_step(s_X)[0]
                 err_plt = lambda: plt.errorbar(s_X[:, _ix], s_Y_mean[:, _iy],
-                                               yerr=np.sqrt(s_Y_var[:, _iy]), fmt='none')
+                                               yerr=np.sqrt(s_Y_var[:, _iy]),
+                                               fmt='none')
                 ep_net_distr.append((num_epochs, err_plt))
     def dbg_done(workspace):
         kw_ticks = {
