@@ -97,12 +97,13 @@ def init(args):
     return workspace
 
 
-def _check(Xs, Ys, workspace, config, Ys_var, Ys_prec):
+def _check(Xs, Ys, workspace, Ys_var, Ys_prec):
     assert Ys_var is None or Ys_prec is None
     assert Ys_var is None, "for historical reasons"
     if Ys_prec is None and Ys_var is not None:
         # TODO_TZ: calculate the inverse for convenience
         'unreachable, todo in the future'
+    config = workspace['config']
     # transform input if needed
     dX, dY = Xs.shape[-1], Ys.shape[-1]
     assert dX == config['num_inputs'] and dY == config['num_outputs']
@@ -142,13 +143,13 @@ def _check(Xs, Ys, workspace, config, Ys_var, Ys_prec):
     return Xs, Ys, Ys_prec
 
 
-def forward(Xs, Ys, workspace, config,
+def forward(workspace, Xs, Ys,
             Ys_var=None, Ys_prec=None,
             dbg_iter=None, dbg_done=None):
-    # TOOD_TZ:
+    config = workspace['config']
     pprint.pprint(config)
     pprint.pprint(workspace)
-    Xs, Ys, Ys_prec = _check(Xs, Ys, workspace, config, Ys_var, Ys_prec)
+    Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
     N, T = Xs.shape[:2]
     B = config['size_batch']
     M = config['rnn_steps']
@@ -168,12 +169,13 @@ def forward(Xs, Ys, workspace, config,
     return param_col, optim_state
 
 
-def train(Xs, Ys, workspace, config,
+def train(workspace, Xs, Ys,
           Ys_var=None, Ys_prec=None,
           dbg_iter=None, dbg_done=None):
+    config = workspace['config']
     pprint.pprint(config)
     pprint.pprint(workspace)
-    Xs, Ys, Ys_prec = _check(Xs, Ys, workspace, config, Ys_var, Ys_prec)
+    Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
     print "=========Start Training========="
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -270,4 +272,4 @@ if __name__ == "__main__":
     pprint.pprint(DEFAULT_ARGS)
 
     problem = init(DEFAULT_ARGS)
-    train(Xs, Ys, problem, DEFAULT_ARGS, Ys_prec=None)
+    train(problem, Xs, Ys, Ys_prec=None)
