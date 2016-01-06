@@ -18,7 +18,7 @@ step_size: .01
 # training logistics
 size_sample: 30  # #times to sample the network per data pair
 size_batch: 1  # #data pairs for each gradient estimate
-param_penal_wt: 0.  # weight decay (0 means none)
+weight_decay: 0.  # weight decay (0 means none)
 init_theta:
   distr: XavierNormal  # initialization
   params:

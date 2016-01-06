@@ -85,9 +85,9 @@ def make_funcs(config, dbg_out=None):
         _l = dist.gaussian.logprob(Ys_gt[i], Ys[i], Ys_var[i])
         loss_vec.append(_l)
     loss_vec = cgt.add_multi(loss_vec)
-    if config['param_penal_wt'] > 0.:
+    if config['weight_decay'] > 0.:
         params_flat = cgt.concatenate([p.flatten() for p in params])
-        loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
+        loss_param = config['weight_decay'] * cgt.sum(params_flat ** 2)
         loss_vec -= loss_param  # / size_batch
     loss = cgt.sum(loss_vec) / config['rnn_steps'] / size_batch
     grad = cgt.grad(loss, params)

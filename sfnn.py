@@ -76,10 +76,10 @@ def make_funcs(config, dbg_out={}):
     # net_out = [out_mean, out_var]
 
     loss_vec = dist.gaussian.logprob(Y_gt, net_out, Y_var)
-    if config['param_penal_wt'] > 0.:
+    if config['weight_decay'] > 0.:
         print "Applying penalty on parameter norm"
         params_flat = cgt.concatenate([p.flatten() for p in params])
-        loss_param = config['param_penal_wt'] * cgt.sum(params_flat ** 2)
+        loss_param = config['weight_decay'] * cgt.sum(params_flat ** 2)
         loss_vec -= loss_param # / size_batch
     loss = cgt.sum(loss_vec) / size_batch
 
