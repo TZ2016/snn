@@ -147,8 +147,8 @@ def forward(workspace, Xs, Ys,
             Ys_var=None, Ys_prec=None,
             dbg_iter=None, dbg_done=None):
     config = workspace['config']
-    pprint.pprint(config)
-    pprint.pprint(workspace)
+    # pprint.pprint(config)
+    # pprint.pprint(workspace)
     Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
     N, T = Xs.shape[:2]
     B = config['size_batch']
@@ -173,10 +173,10 @@ def train(workspace, Xs, Ys,
           Ys_var=None, Ys_prec=None,
           dbg_iter=None, dbg_done=None):
     config = workspace['config']
-    pprint.pprint(config)
-    pprint.pprint(workspace)
+    # pprint.pprint(config)
+    # pprint.pprint(workspace)
     Xs, Ys, Ys_prec = _check(workspace, Xs, Ys, Ys_var, Ys_prec)
-    print "=========Start Training========="
+    # print "=========Start Training========="
     N, T = Xs.shape[:2]
     B = config['size_batch']
     M = config['rnn_steps']
@@ -188,12 +188,12 @@ def train(workspace, Xs, Ys,
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     num_epochs, num_iters = -1, N
     if not config['debug']: dbg_iter = dbg_done = None
-    print "About to train for %d epochs" % K
+    # print "About to train for %d epochs" % K
     while num_epochs < K:
         if num_iters >= N:
             _ind = np.random.choice(N, replace=False, size=N)
             num_epochs, num_iters = num_epochs + 1, 0
-            print "Epoch %d starts" % num_epochs
+            # print "Epoch %d starts" % num_epochs
             # import matplotlib.pyplot as plt
             # _b, _d = 0, 0  # which batch/dim to plot
             # plt.scatter(range(_Xb[_b,:,_d].size), _Yb[_b,:,_d])
@@ -206,7 +206,7 @@ def train(workspace, Xs, Ys,
                            f_update, f_surr, f_init, M, config=config)
         if dbg_iter: dbg_iter(num_epochs, num_iters, dbg_data, workspace)
         num_iters += B
-    print "=========DONE Training========="
+    # print "=========DONE Training========="
     if 'dump_path' in config and config['dump_path']:
         save(config['dump_path'], workspace)
     if dbg_done: dbg_done(workspace)
