@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def safe_path(rel_path, out_path, flag=None):
-    abs_path = os.path.join(out_path, rel_path)
+def safe_path(base_path, rel_path=None, flag=None):
+    abs_path = base_path if rel_path is None else os.path.join(base_path, rel_path)
     d = os.path.dirname(abs_path)
     if not os.path.exists(d):
         warnings.warn("Making new directory: %s" % d)

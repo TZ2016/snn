@@ -3,8 +3,6 @@ import pprint
 import pickle
 import cgt
 import copy
-import traceback
-import os
 from cgt import nn
 import numpy as np
 from cgt.utility.param_collection import ParamCollection
@@ -16,6 +14,7 @@ from utils.debug import safe_path
 from utils.utilities import NONE
 
 
+# import traceback
 # def _numpy_err_callback(type, flag):
 #     print type, flag
 #     traceback.print_stack()
@@ -238,20 +237,18 @@ def train(workspace, Xs, Ys,
     return param_col, optim_state
 
 
-def save(root_dir, ws):
-    if not os.path.exists(root_dir):
-        os.makedirs(root_dir)
-    print "Saving params to %s" % (root_dir, )
+def save(path, ws):
     try:
         to_save = ['type', 'optim_state', 'param_col', 'config']
         data = {k: ws[k] for k in to_save}
-        pickle.dump(data, open(root_dir, 'w'))
+        pickle.dump(data, safe_path(path, flag='w'))
     except:
         print "Warning: saving params failed!"
         input("Save the params manually before too late")
 
 
 if __name__ == "__main__":
+    import os
     import yaml
     import time
     from utils.data import *
