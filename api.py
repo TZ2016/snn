@@ -247,9 +247,9 @@ def save(root_dir, ws):
         os.makedirs(root_dir)
     print "Saving params to %s" % (root_dir, )
     try:
-        pickle.dump(ws['config'], safe_path('args.pkl', root_dir, 'w'))
-        pickle.dump(ws['param_col'].get_values(), safe_path('params.pkl', root_dir, 'w'))
-        pickle.dump(ws['optim_state'], safe_path('__snapshot.pkl', root_dir, 'w'))
+        to_save = ['type', 'optim_state', 'param_col', 'config']
+        data = {k: ws[k] for k in to_save}
+        pickle.dump(data, open(root_dir, 'w'))
     except:
         print "Warning: saving params failed!"
         input("Save the params manually before too late")
