@@ -239,8 +239,8 @@ def train(workspace, Xs, Ys,
 
 def save(path, ws):
     try:
-        to_save = ['type', 'optim_state', 'param_col', 'config']
-        data = {k: ws[k] for k in to_save}
+        data = dict(type=ws['type'], optim_state=ws['optim_state'],
+                    config=ws['config'], params_val=ws['param_col'].get_values())
         pickle.dump(data, safe_path(path, flag='w'))
     except:
         print "Warning: saving params failed!"
