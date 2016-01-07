@@ -20,7 +20,7 @@ def hybrid_network(size_in, size_out, num_units, num_stos, dbg_out={}):
         prev_out = combo_layer(prev_out, prev_num_units, curr_num_units,
                                (curr_num_sto,),
                                s_funcs=s_func_ip,
-                               o_funcs=(lambda x: cgt.bernoulli(cgt.sigmoid(x)), cgt.sigmoid),
+                               o_funcs=(lambda x: cgt.bernoulli(cgt.sigmoid(x)), cgt.nn.rectify),
                                name=str(curr_layer), dbg_out=dbg_out)
         dbg_out['L%d~out' % curr_layer] = prev_out
         prev_num_units = curr_num_units
