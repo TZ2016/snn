@@ -104,7 +104,7 @@ def step_once(param_col, optim_state, _Xb, _Yb, _Yb_prec,
 #             info = f_surr(x, y, num_samples=config['size_sample'])
 #         # _dbg_infos.append(info)
 #         grad = info['grad']
-#         workspace['update'](param_col.flatten_values(grad), optim_state)
+#         workspace['f_update'](param_col.flatten_values(grad), optim_state)
 #         param_col.set_value_flat(optim_state['theta'])
 #         num_iters += 1
 #         if num_iters == Y.shape[0]:

@@ -16,14 +16,14 @@ from utils.debug import safe_path
 from utils.utilities import NONE
 
 
-def _numpy_err_callback(type, flag):
-    print type, flag
-    traceback.print_stack()
-    raise FloatingPointError('refer to _numpy_err_callback for more details')
-np.seterr(divide='call', over='warn', invalid='call', under='warn')
-np.seterrcall(_numpy_err_callback)
-np.set_printoptions(precision=4, suppress=True)
-cgt.check_source()
+# def _numpy_err_callback(type, flag):
+#     print type, flag
+#     traceback.print_stack()
+#     raise FloatingPointError('refer to _numpy_err_callback for more details')
+# np.seterr(divide='call', over='warn', invalid='call', under='warn')
+# np.seterrcall(_numpy_err_callback)
+# np.set_printoptions(precision=4, suppress=True)
+cgt.check_source()  # this line will fail if CGT in use is not TZ2016's fork
 print cgt.get_config(True)
 
 
@@ -209,7 +209,7 @@ def train(workspace, Xs, Ys,
     param_col = workspace['param_col']
     optim_state = workspace['optim_state']
     f_init = workspace['f_init']
-    f_train, f_update = workspace['train'], workspace['update']
+    f_train, f_update = workspace['f_train'], workspace['f_update']
     f_surr, f_step = workspace['f_surr'], workspace['f_step']
     num_epochs, num_iters = -1, N
     if not config['debug']: dbg_iter = dbg_done = None

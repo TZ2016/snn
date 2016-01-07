@@ -215,7 +215,7 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
                                            info[1+M:1+M+len(c_t)], \
                                            info[1+M+len(c_t):1+M+2*len(c_t)], \
                                            info[1+M+2*len(c_t):]
-            workspace['update'](param_col.flatten_values(grad), optim_state)
+            workspace['f_update'](param_col.flatten_values(grad), optim_state)
             param_col.set_value_flat(optim_state['theta'])
             _Yb_hat.extend(ys_hat)
         _Yb_hat = np.array(_Yb_hat).transpose(1, 0, 2)
