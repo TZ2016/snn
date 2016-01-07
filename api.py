@@ -28,6 +28,8 @@ print cgt.get_config(True)
 
 
 def init(args):
+    ws = {}
+    ws['config'] = copy.deepcopy(args)
     _is_sto = any(_n != 0 for _n in args['num_sto'])
     _is_rec = any(_n != 0 for _n in args['num_mems'])
     assert not (_is_rec and _is_sto), "Stochastic recurrent units not supported"
@@ -36,66 +38,60 @@ def init(args):
     else: net_type.append('dnn')
     if _is_rec: net_type.append('rnn')
     else: net_type.append('fnn')
+    ws['type'] = net_type
     # TODO: add in the dbg_out
     if _is_rec:
         print "=========Start building a DRNN========="
-        f_train = rnn.step_once
-        params, f_step, f_loss, f_grad, f_init, f_surr = rnn.make_funcs(args)
+        ws['f_train'] = rnn.step_once
+        params, ws['f_step'], ws['f_loss'], ws['f_grad'], ws['f_init'], ws['f_surr'] = rnn.make_funcs(args)
     else:
         print "=========Start building a SFNN========="
-        f_train = sfnn.step_once
-        params, f_step, f_loss, f_grad, f_init, f_surr = sfnn.make_funcs(args)
+        ws['f_train'] = sfnn.step_once
+        params, ws['f_step'], ws['f_loss'], ws['f_grad'], ws['f_init'], ws['f_surr'] = sfnn.make_funcs(args)
     param_col = ParamCollection(params)
-    if 'snapshot' in args:
-        print "Loading params from previous snapshot: %s" % args['snapshot']
-        optim_state = pickle.load(open(args['snapshot'], 'r'))
-        assert isinstance(optim_state, dict)
-        if optim_state['type'] == 'adam':
-            f_update = adam_update
-        elif optim_state['type'] == 'rmsprop':
-            f_update = rmsprop_update
-        else:
-            raise ValueError
+    ws['param_col'] = param_col
+    _init_optim_state(ws)
+    if ws['optim_state']['type'] == 'adam':
+        ws['f_update'] = adam_update
+    elif ws['optim_state']['type'] == 'rmsprop':
+        ws['f_update'] = rmsprop_update
     else:
-        theta = param_col.get_value_flat()
-        method = args['opt_method'].lower()
-        print "Initializing theta from fresh"
-        if method == 'rmsprop':
-            optim_state = rmsprop_create(theta, step_size=args['step_size'])
-            f_update = rmsprop_update
-        elif method == 'adam':
-            optim_state = adam_create(theta, step_size=args['step_size'])
-            f_update = adam_update
-        else:
-            raise ValueError('unknown optimization method: %s' % method)
-        init_method = args['init_theta']['distr']
-        if init_method == 'XavierNormal':
-            init_theta = nn.XavierNormal(**args['init_theta']['params'])
-        elif init_method == 'gaussian':
-            init_theta = nn.IIDGaussian(**args['init_theta']['params'])
-        else:
-            raise ValueError('unknown init distribution')
-        optim_state['theta'] = nn.init_array(
-            init_theta, (param_col.get_total_size(), 1)).flatten()
-    param_col.set_value_flat(optim_state['theta'])
-    # TODO: make workspace a proper class
-    workspace = {
-        'type': net_type,
-        'optim_state': optim_state,
-        'param_col': param_col,
-        'f_surr': f_surr,
-        'f_step': f_step,
-        'f_loss': f_loss,
-        'f_init': f_init,
-        'f_grad': f_grad,
-        'update': f_update,
-        'train': f_train,
-        'config': copy.deepcopy(args),
-    }
+        raise ValueError
+    param_col.set_value_flat(ws['optim_state']['theta'])
     print "Configurations"
     pprint.pprint(args)
     print "=========DONE BUILDING========="
-    return workspace
+    return ws
+
+
+def _init_optim_state(ws, reset=False):
+    if 'optim_state' in ws and not reset: return
+    config = ws['config']
+    if 'optim_state' in ws:
+        print "Reusing cached optim_state"
+        theta = ws['optim_state']['theta']
+    elif 'snapshot' in config:
+        print "Loading optim_state from previous snapshot: %s" % config['snapshot']
+        ws['optim_state'] = pickle.load(open(config['snapshot'], 'r'))
+        theta = ws['optim_state']['theta']
+    else:
+        init_method = config['init_theta']['distr']
+        if init_method == 'XavierNormal':
+            init_theta = nn.XavierNormal(**config['init_theta']['params'])
+        elif init_method == 'gaussian':
+            init_theta = nn.IIDGaussian(**config['init_theta']['params'])
+        else:
+            raise ValueError('unknown init distribution')
+        theta = nn.init_array(init_theta, (ws['param_col'].get_total_size(), 1)).flatten()
+    method = config['opt_method'].lower()
+    if method == 'rmsprop':
+        optim_create = lambda t: rmsprop_create(t, step_size=config['step_size'])
+    elif method == 'adam':
+        optim_create = lambda t: adam_create(t, step_size=config['step_size'])
+    else:
+        raise ValueError('unknown optimization method: %s' % method)
+    if reset or 'optim_state' not in ws:
+        ws['optim_state'] = optim_create(theta)
 
 
 def _check(workspace, Xs=None, Ys=None, Ys_var=None, Ys_prec=None):
