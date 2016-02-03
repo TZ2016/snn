@@ -1,4 +1,4 @@
-__all__ = ['safe_path', 'example_debug']
+__all__ = ['safe_io', 'example_debug']
 
 
 import os
@@ -7,22 +7,39 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def safe_path(base_path, rel_path=None, flag=None):
+def safe_io(func, base_path, rel_path=None, flag=None):
     abs_path = base_path if rel_path is None else os.path.join(base_path, rel_path)
     d = os.path.dirname(abs_path)
     if not os.path.exists(d):
         warnings.warn("Making new directory: %s" % d)
         os.makedirs(d)
     if flag == 'r':
-        if os.path.isfile(abs_path):
-            return open(abs_path, 'r')
-        warnings.warn("Attempt to read non-existing file: %s" % abs_path)
-        return open(abs_path, 'w')
+        if not os.path.isfile(abs_path):
+            warnings.warn("Attempt to read non-existing file: %s" % abs_path)
+            flag = 'w'
     elif flag == 'w':
         if os.path.exists(abs_path):
             warnings.warn("Overwritten an existing file: %s" % abs_path)
-        return open(abs_path, 'w')
-    return abs_path
+    with open(abs_path, flag) as f:
+        func(f)
+
+
+# def safe_path(base_path, rel_path=None, flag=None):
+#     abs_path = base_path if rel_path is None else os.path.join(base_path, rel_path)
+#     d = os.path.dirname(abs_path)
+#     if not os.path.exists(d):
+#         warnings.warn("Making new directory: %s" % d)
+#         os.makedirs(d)
+#     if flag == 'r':
+#         if os.path.isfile(abs_path):
+#             return open(abs_path, 'r')
+#         warnings.warn("Attempt to read non-existing file: %s" % abs_path)
+#         return open(abs_path, 'w')
+#     elif flag == 'w':
+#         if os.path.exists(abs_path):
+#             warnings.warn("Overwritten an existing file: %s" % abs_path)
+#         return open(abs_path, 'w')
+#     return abs_path
 
 
 def example_debug(args, X, Y, Y_var=None):
@@ -55,7 +72,7 @@ def example_debug(args, X, Y, Y_var=None):
                     raise KeyError
     X, Y, Y_var = np.squeeze(X, axis=1), np.squeeze(Y, axis=1), np.squeeze(Y_var, axis=1)
     N, _ = X.shape
-    _safe_path = lambda p: safe_path(p, args['dump_path'])
+    _safe_io = lambda func, p: safe_io(func, p, args['dump_path'])
     conv_smoother = lambda x: np.convolve(x, [1. / N] * N, mode='valid')
     _ix, _iy = args['dbg_plot_samples']['x_dim'], args['dbg_plot_samples']['y_dim']
     # cache
@@ -101,7 +118,7 @@ def example_debug(args, X, Y, Y_var=None):
         h_ax(axs[1], title='Gradient Norm', x='hide')
         axs[2].plot(conv_smoother(it_theta_norm)); axs[2].set_title('theta')
         h_ax(axs[2], title='Theta Norm', x='auto')
-        f.savefig(_safe_path('overview.png')); plt.close(f)
+        _safe_io(lambda file: f.savefig(file), 'overview.png'); plt.close(f)
         if False and args['dbg_plot_charts']:
             # plot grad norm component-wise
             _grad_norm_cmp = np.array(it_grad_norm_comp).T
@@ -110,7 +127,7 @@ def example_debug(args, X, Y, Y_var=None):
             for _i, _ax in enumerate(axs):
                 _ax.plot(conv_smoother(_grad_norm_cmp[_i]))
             h_ax(axs[:-1], x='hide'); h_ax(axs, y='mm')
-            f.tight_layout(); f.savefig(_safe_path('norm_grad_cmp.png')); plt.close(f)
+            f.tight_layout(); _safe_io(lambda fi: f.savefig(fi), 'norm_grad_cmp.png'); plt.close(f)
             # plot theta norm component-wise
             _theta_norm_cmp = np.array(it_theta_norm_comp).T
             f, axs = plt.subplots(_theta_norm_cmp.shape[0], 1, sharex=True, subplot_kw=kw_ticks)
@@ -118,7 +135,7 @@ def example_debug(args, X, Y, Y_var=None):
             for _i, _ax in enumerate(axs):
                 _ax.plot(conv_smoother(_theta_norm_cmp[_i]))
             h_ax(axs[:-1], x='hide'); h_ax(axs, y='mm')
-            f.tight_layout(); f.savefig(_safe_path('norm_theta_cmp.png')); plt.close(f)
+            f.tight_layout(); _safe_io(lambda fi: f.savefig(fi), 'norm_theta_cmp.png'); plt.close(f)
         # plot samples for each epoch
         if args['dbg_plot_samples']['plot']:
             for _e, _distr in enumerate(ep_net_distr):
@@ -126,5 +143,5 @@ def example_debug(args, X, Y, Y_var=None):
                 plt.scatter(X[:, _ix], Y[:, _iy], alpha=0.5, color='y', marker='*')
                 plt.gca().set_autoscale_on(False)
                 _distr[1](); plt.title(_ttl)
-                plt.savefig(_safe_path('_sample/' + _ttl)); plt.cla()
+                _safe_io(lambda f: plt.savefig(f), '_sample/' + _ttl); plt.cla()
     return dbg_iter, dbg_done

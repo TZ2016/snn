@@ -10,7 +10,7 @@ from cgt.utility.param_collection import ParamCollection
 import sfnn
 import rnn
 from utils.opt import *
-from utils.debug import safe_path
+from utils.debug import safe_io
 from utils.utilities import NONE
 
 
@@ -193,6 +193,9 @@ def evaluate(workspace, Xs, Ys,
     return param_col, optim_state
 
 
+
+# from memory_profiler import profile
+# @profile(stream=open('memory_profile.log', 'w+'))
 def train(workspace, Xs, Ys,
           Ys_var=None, Ys_prec=None,
           dbg_iter=None, dbg_done=None):
@@ -241,7 +244,7 @@ def save(path, ws):
     try:
         data = dict(type=ws['type'], optim_state=ws['optim_state'],
                     config=ws['config'], params_val=ws['param_col'].get_values())
-        pickle.dump(data, safe_path(path, flag='w'))
+        safe_io(lambda f: pickle.dump(data, f), path, flag='w')
         print "Snapshot successfully saved to %s" % (path, )
     except:
         print "Warning: saving params failed!"

@@ -7,7 +7,7 @@ import numpy as np
 import cgt.distributions as dist
 
 from layers import lstm_block, combo_layer, s_func_ip
-from utils import safe_path, safe_logadd
+from utils import safe_io, safe_logadd
 
 
 def lstm_network_t(size_in, size_out, num_units, num_mems, dbg_out={}):
@@ -235,6 +235,8 @@ def step(Xs, Ys, workspace, config, Ys_var=None):
         os.makedirs(out_path)
     print "Saving params to %s" % out_path
     # pickle.dump(args, open(_safe_path('args.pkl'), 'w'))
-    pickle.dump(param_col.get_values(), safe_path('params.pkl', out_path, 'w'))
-    pickle.dump(optim_state, safe_path('__snapshot.pkl', out_path, 'w'))
+    safe_io(lambda f: pickle.dump(param_col.get_values(), f),
+            'params.pkl', out_path, flag='w')
+    safe_io(lambda f: pickle.dump(optim_state, f),
+            '__snapshot.pkl', out_path, flag='w')
     return param_col, optim_state
